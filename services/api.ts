@@ -137,9 +137,6 @@ export async function fetchCategoryGames(
   params: Omit<GamesTilesParams, 'category'> = {}
 ): Promise<GamesTilesResponse> {
   try {
-    // Log the getPageUrl to debug
-    console.log('fetchCategoryGames called with getPageUrl:', getPageUrl);
-    
     // Use Next.js API route to avoid CORS issues
     // The API route will handle the actual fetch to the external API
     const searchParams = new URLSearchParams();
@@ -172,8 +169,6 @@ export async function fetchCategoryGames(
 
     const queryString = searchParams.toString();
     const apiUrl = `/api/games?${queryString}`;
-    
-    console.log('Fetching games via API route:', apiUrl);
 
     const response = await fetch(apiUrl);
 
@@ -189,12 +184,6 @@ export async function fetchCategoryGames(
     }
 
     const data = await response.json();
-    console.log('Games response structure:', {
-      keys: Object.keys(data),
-      hasGames: 'games' in data,
-      hasItems: 'items' in data,
-      sample: JSON.stringify(data).substring(0, 500),
-    });
 
     // Handle different response structures
     let games: GameTile[] = [];
@@ -211,7 +200,7 @@ export async function fetchCategoryGames(
     }
 
     // Map games to our GameTile format
-    const mappedGames: GameTile[] = games.map((game: Record<string, unknown>, index: number) => {
+    const mappedGames: GameTile[] = games.map((game: Record<string, unknown>) => {
       // Handle different field names from API
       const gameId = String(
         game.id || 
@@ -284,15 +273,6 @@ export async function fetchCategoryGames(
         gameThumbnail = '';
       }
       
-      // Log first game's image structure for debugging
-      if (index === 0) {
-        console.log('Sample game image structure:', {
-          image: game.image,
-          thumbnail: game.thumbnail,
-          mappedThumbnail: gameThumbnail,
-        });
-      }
-      
       const gameProvider = typeof game.provider === 'string' 
         ? game.provider 
         : (typeof game.providerName === 'string' ? game.providerName : undefined);
@@ -321,11 +301,6 @@ export async function fetchCategoryGames(
     if (mappedGames.length > requestedPageSize) {
       // API returned all games, limit to requested pageSize
       resultGames = mappedGames.slice(0, requestedPageSize);
-      console.log('API returned more games than requested, limiting:', {
-        returned: mappedGames.length,
-        requested: requestedPageSize,
-        limited: resultGames.length,
-      });
     }
 
     const result: GamesTilesResponse = {
@@ -335,12 +310,6 @@ export async function fetchCategoryGames(
       pageSize: requestedPageSize,
     };
 
-    console.log('Mapped games:', { 
-      count: mappedGames.length,
-      returned: resultGames.length,
-      requested: requestedPageSize,
-      totalCount,
-    });
     return result;
   } catch (error) {
     console.error('Error fetching category games:', error);

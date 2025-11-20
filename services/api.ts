@@ -9,6 +9,7 @@ import type {
   GamesTilesParams,
   GamesTilesResponse,
 } from '@/types';
+import { API_TIMEOUT } from '@/constants';
 
 // API_BASE_URL is defined in app/api/games/route.ts and app/api/config/route.ts
 
@@ -38,7 +39,7 @@ export async function fetchConfig(): Promise<Category[]> {
         'User-Agent': 'Mozilla/5.0',
       },
       // Increase timeout for server-side requests
-      ...(isServer && { signal: AbortSignal.timeout(30000) }), // 30 seconds for server
+      ...(isServer && { signal: AbortSignal.timeout(API_TIMEOUT) }),
     });
 
     if (!response.ok) {

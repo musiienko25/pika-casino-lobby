@@ -5,9 +5,10 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchCategories, setSelectedCategory } from '@/store/slices/categoriesSlice';
+import { INITIAL_LOADER_MIN_TIME } from '@/constants';
 import styles from './CategoriesNav.module.scss';
 
 export default function CategoriesNav() {
@@ -22,7 +23,7 @@ export default function CategoriesNav() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowInitialLoader(false);
-    }, 1000);
+    }, INITIAL_LOADER_MIN_TIME);
     
     return () => clearTimeout(timer);
   }, []);
@@ -34,9 +35,9 @@ export default function CategoriesNav() {
     }
   }, [dispatch, items.length]);
 
-  const handleCategoryClick = (category: typeof items[0]) => {
+  const handleCategoryClick = useCallback((category: typeof items[0]) => {
     dispatch(setSelectedCategory(category));
-  };
+  }, [dispatch]);
 
   // Show loader if loading or during first second
   if ((loading || showInitialLoader) && items.length === 0) {

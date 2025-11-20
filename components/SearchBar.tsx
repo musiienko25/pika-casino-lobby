@@ -8,6 +8,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setSearchQuery } from '@/store/slices/gamesSlice';
+import { SEARCH_DEBOUNCE_MS } from '@/constants';
 import styles from './SearchBar.module.scss';
 
 export default function SearchBar() {
@@ -21,7 +22,7 @@ export default function SearchBar() {
       if (localQuery !== searchQuery) {
         dispatch(setSearchQuery(localQuery));
       }
-    }, 500); // 500ms debounce
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
   }, [localQuery, searchQuery, dispatch]);

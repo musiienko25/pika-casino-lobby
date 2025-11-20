@@ -5,10 +5,11 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchGamesByCategory, increasePageSize } from '@/store/slices/gamesSlice';
+import { INITIAL_PAGE_SIZE, LOAD_MORE_INCREMENT, INITIAL_LOADER_MIN_TIME } from '@/constants';
 import styles from './GamesList.module.scss';
 
 export default function GamesList() {
@@ -25,16 +26,16 @@ export default function GamesList() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowInitialLoader(false);
-    }, 1000);
+    }, INITIAL_LOADER_MIN_TIME);
     
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle Load More - increase pageSize by 20
-  const handleLoadMore = () => {
+  // Handle Load More - increase pageSize by LOAD_MORE_INCREMENT
+  const handleLoadMore = useCallback(() => {
     if (!loading && selectedCategory?.getPage) {
-      const newPageSize = pageSize + 20;
-      dispatch(increasePageSize(20));
+      const newPageSize = pageSize + LOAD_MORE_INCREMENT;
+      dispatch(increasePageSize(LOAD_MORE_INCREMENT));
       dispatch(
         fetchGamesByCategory({
           getPageUrl: selectedCategory.getPage,
@@ -46,7 +47,7 @@ export default function GamesList() {
         })
       );
     }
-  };
+  }, [loading, selectedCategory, pageSize, searchQuery, dispatch]);
 
   // Fetch games only when category or search changes (initial load)
   useEffect(() => {
@@ -59,7 +60,7 @@ export default function GamesList() {
           params: {
             search: searchQuery || undefined,
             pageNumber: 1,
-            pageSize: 10, // Initial load - 10 games
+            pageSize: INITIAL_PAGE_SIZE,
           },
         })
       );
@@ -163,16 +164,17 @@ export default function GamesList() {
       </div>
       
       {/* Load More Button */}
-      {!loading && items.length < totalCount && totalCount > 0 && (
-        <div className={styles.loadMoreContainer}>
-          <button
-            type="button"
-            onClick={handleLoadMore}
-            className={styles.loadMoreButton}
-            disabled={loading}
-          >
-            Load More Games (+10)
-          </button>
+            {!loading && items.length < totalCount && totalCount > 0 && (
+              <div className={styles.loadMoreContainer}>
+                <button
+                  type="button"
+                  onClick={handleLoadMore}
+                  className={styles.loadMoreButton}
+                  disabled={loading}
+                  aria-label={`Load ${LOAD_MORE_INCREMENT} more games`}
+                >
+                  Load More Games (+{LOAD_MORE_INCREMENT})
+                </button>
           <p className={styles.loadMoreInfo}>
             Showing {items.length} of {totalCount} games
           </p>

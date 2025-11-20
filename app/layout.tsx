@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import ReduxProvider from "@/components/ReduxProvider";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,6 +17,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Pika Casino - Games Lobby",
   description: "Browse and search through our collection of casino games",
+  keywords: ["casino", "games", "slots", "poker", "blackjack", "roulette"],
+  openGraph: {
+    title: "Pika Casino - Games Lobby",
+    description: "Browse and search through our collection of casino games",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -28,7 +35,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ReduxProvider>{children}</ReduxProvider>
+        <ErrorBoundary>
+          <ReduxProvider>{children}</ReduxProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

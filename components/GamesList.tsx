@@ -6,10 +6,11 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import Image from 'next/image';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchGamesByCategory, increasePageSize } from '@/store/slices/gamesSlice';
 import { INITIAL_PAGE_SIZE, LOAD_MORE_INCREMENT, INITIAL_LOADER_MIN_TIME } from '@/constants';
+import GameTile from './GameTile';
+import SkeletonLoader from './SkeletonLoader';
 import styles from './GamesList.module.scss';
 
 export default function GamesList() {
@@ -67,13 +68,12 @@ export default function GamesList() {
     }
   }, [dispatch, selectedCategory, searchQuery]); // Only trigger on category/search change
 
-  // Show loader if loading or during first second
+  // Show skeleton loader if loading or during first second
   if ((loading || showInitialLoader) && items.length === 0) {
     return (
       <div className={styles.gamesList}>
-        <div className={styles.loading}>
-          <div className={styles.spinner}></div>
-          <p>Loading games...</p>
+        <div className={styles.gamesGrid}>
+          <SkeletonLoader count={INITIAL_PAGE_SIZE} />
         </div>
       </div>
     );
@@ -127,39 +127,7 @@ export default function GamesList() {
     <div className={styles.gamesList}>
       <div className={styles.gamesGrid}>
         {items.map((game) => (
-          <div key={game.id} className={styles.gameTile}>
-            <div className={styles.gameThumbnail}>
-              {game.thumbnail && 
-               typeof game.thumbnail === 'string' && 
-               (game.thumbnail.startsWith('http') || game.thumbnail.startsWith('/')) ? (
-                <Image
-                  src={game.thumbnail}
-                  alt={game.name || 'Game thumbnail'}
-                  fill
-                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                  className={styles.thumbnailImage}
-                  loading="lazy"
-                  onError={(e) => {
-                    // Hide image on error and show placeholder
-                    const target = e.target as HTMLImageElement;
-                    if (target.parentElement) {
-                      target.style.display = 'none';
-                    }
-                  }}
-                />
-              ) : (
-                <div className={styles.thumbnailPlaceholder}>
-                  {game.name?.[0] || '?'}
-                </div>
-              )}
-            </div>
-            <div className={styles.gameInfo}>
-              <h3 className={styles.gameName}>{game.name || 'Unknown Game'}</h3>
-              {game.provider && (
-                <p className={styles.gameProvider}>{game.provider}</p>
-              )}
-            </div>
-          </div>
+          <GameTile key={game.id} game={game} />
         ))}
       </div>
       
@@ -181,12 +149,13 @@ export default function GamesList() {
         </div>
       )}
       
-      {loading && items.length > 0 && (
-        <div className={styles.loadingMore}>
-          <div className={styles.spinner}></div>
-          <p>Loading more games...</p>
-        </div>
-      )}
+            {loading && items.length > 0 && (
+              <div className={styles.skeletonContainer}>
+                <div className={styles.gamesGrid}>
+                  <SkeletonLoader count={LOAD_MORE_INCREMENT} />
+                </div>
+              </div>
+            )}
       
       {!loading && items.length >= totalCount && items.length > 0 && totalCount > 0 && (
         <div className={styles.endOfList}>

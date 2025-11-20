@@ -66,7 +66,7 @@ export default function CategoriesNav() {
 
   return (
     <nav className={styles.categoriesNav} role="navigation" aria-label="Game categories">
-      <div className={styles.categoriesList}>
+      <div className={styles.categoriesList} role="list">
         {items.map((category) => (
           <button
             key={category.id}
@@ -75,7 +75,9 @@ export default function CategoriesNav() {
             }`}
             onClick={() => handleCategoryClick(category)}
             aria-pressed={selectedCategory?.id === category.id}
+            aria-label={`Filter games by ${category.name} category`}
             type="button"
+            role="listitem"
           >
             {category.name}
           </button>

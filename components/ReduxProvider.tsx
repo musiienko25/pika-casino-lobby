@@ -16,7 +16,7 @@ interface ReduxProviderProps {
 
 export default function ReduxProvider({ children }: ReduxProviderProps) {
   // Create store instance only once per client
-  const storeRef = useRef<AppStore>();
+  const storeRef = useRef<AppStore | undefined>(undefined);
   if (!storeRef.current) {
     storeRef.current = makeStore();
   }

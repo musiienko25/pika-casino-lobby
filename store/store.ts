@@ -8,19 +8,28 @@ import gamesReducer from './slices/gamesSlice';
 import categoriesReducer from './slices/categoriesSlice';
 import type { Category } from '@/types';
 
-export function makeStore(preloadedState?: {
-  categories?: { items: Category[]; selectedCategory: Category | null };
-}) {
+const store = configureStore({
+  reducer: {
+    games: gamesReducer,
+    categories: categoriesReducer,
+  },
+});
+
+export type AppStore = typeof store;
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
+
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+export function makeStore(preloadedState?: DeepPartial<RootState>) {
   return configureStore({
     reducer: {
       games: gamesReducer,
       categories: categoriesReducer,
     },
-    preloadedState,
+    preloadedState: preloadedState as RootState | undefined,
   });
 }
-
-export type AppStore = ReturnType<typeof makeStore>;
-export type RootState = ReturnType<AppStore['getState']>;
-export type AppDispatch = AppStore['dispatch'];
 

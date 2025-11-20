@@ -18,8 +18,18 @@ const API_BASE_URL = 'https://casino.api.pikakasino.com/v1/pika';
  */
 export async function fetchConfig(): Promise<Category[]> {
   try {
-    // Use Next.js API route to avoid CORS issues
-    const response = await fetch('/api/config');
+    // On server, call API directly; on client, use API route to avoid CORS
+    const isServer = typeof window === 'undefined';
+    const apiUrl = isServer
+      ? 'https://casino.api.pikakasino.com/v1/pika/en/config'
+      : '/api/config';
+
+    const response = await fetch(apiUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0',
+      },
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch config: ${response.statusText}`);

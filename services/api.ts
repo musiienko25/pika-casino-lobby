@@ -228,42 +228,9 @@ export async function fetchCategoryGames(
       
       // Handle image field - can be string or object
       let gameThumbnail = '';
-      if (typeof game.image === 'string') {
-        gameThumbnail = game.image;
-      } else if (game.image && typeof game.image === 'object') {
-        const imageObj = game.image as Record<string, unknown>;
-        // Try to get URL from nested image object
-        const original = imageObj.original;
-        const small = imageObj.small;
-        const thumbnail = imageObj.thumbnail;
-        
-        // Handle nested image objects (image.original.url, etc.)
-        if (original && typeof original === 'object') {
-          const origObj = original as Record<string, unknown>;
-          gameThumbnail = String(origObj.url || origObj.original || '');
-        } else if (typeof original === 'string') {
-          gameThumbnail = original;
-        } else if (small && typeof small === 'object') {
-          const smallObj = small as Record<string, unknown>;
-          gameThumbnail = String(smallObj.url || smallObj.small || '');
-        } else if (typeof small === 'string') {
-          gameThumbnail = small;
-        } else if (thumbnail && typeof thumbnail === 'object') {
-          const thumbObj = thumbnail as Record<string, unknown>;
-          gameThumbnail = String(thumbObj.url || thumbObj.thumbnail || '');
-        } else if (typeof thumbnail === 'string') {
-          gameThumbnail = thumbnail;
-        } else {
-          // Fallback: try to stringify the first available property
-          gameThumbnail = String(
-            imageObj.url || 
-            imageObj.original || 
-            imageObj.small || 
-            imageObj.thumbnail || 
-            ''
-          );
-        }
-      } else if (typeof game.thumbnail === 'string') {
+      
+      // First, try thumbnail field
+      if (typeof game.thumbnail === 'string' && game.thumbnail) {
         gameThumbnail = game.thumbnail;
       } else if (game.thumbnail && typeof game.thumbnail === 'object') {
         // Handle thumbnail as object
@@ -275,6 +242,56 @@ export async function fetchCategoryGames(
           thumbObj.thumbnail || 
           ''
         );
+      }
+      
+      // If thumbnail is empty, try image field
+      if (!gameThumbnail) {
+        if (typeof game.image === 'string') {
+          gameThumbnail = game.image;
+        } else if (game.image && typeof game.image === 'object') {
+          const imageObj = game.image as Record<string, unknown>;
+          // Try to get URL from nested image object
+          const original = imageObj.original;
+          const small = imageObj.small;
+          const thumbnail = imageObj.thumbnail;
+          
+          // Handle nested image objects (image.original.url, etc.)
+          if (original && typeof original === 'object') {
+            const origObj = original as Record<string, unknown>;
+            gameThumbnail = String(origObj.url || origObj.src || origObj.original || '');
+          } else if (typeof original === 'string') {
+            gameThumbnail = original;
+          } else if (small && typeof small === 'object') {
+            const smallObj = small as Record<string, unknown>;
+            gameThumbnail = String(smallObj.url || smallObj.src || smallObj.small || '');
+          } else if (typeof small === 'string') {
+            gameThumbnail = small;
+          } else if (thumbnail && typeof thumbnail === 'object') {
+            const thumbObj = thumbnail as Record<string, unknown>;
+            gameThumbnail = String(thumbObj.url || thumbObj.src || thumbObj.thumbnail || '');
+          } else if (typeof thumbnail === 'string') {
+            gameThumbnail = thumbnail;
+          } else {
+            // Fallback: try to stringify the first available property
+            gameThumbnail = String(
+              imageObj.url || 
+              imageObj.src ||
+              imageObj.original || 
+              imageObj.small || 
+              imageObj.thumbnail || 
+              ''
+            );
+          }
+        }
+      }
+      
+      // If still empty, try providerLogo.original.src as fallback
+      if (!gameThumbnail && game.providerLogo && typeof game.providerLogo === 'object') {
+        const providerLogo = game.providerLogo as Record<string, unknown>;
+        if (providerLogo.original && typeof providerLogo.original === 'object') {
+          const original = providerLogo.original as Record<string, unknown>;
+          gameThumbnail = String(original.src || original.url || '');
+        }
       }
       
       // Ensure thumbnail is a valid URL string

@@ -15,8 +15,6 @@ jest.mock('@/services/api', () => ({
   fetchConfig: jest.fn(),
 }));
 
-import { fetchConfig } from '@/services/api';
-
 describe('categoriesSlice', () => {
   const mockCategories: Category[] = [
     { id: '1', name: 'Slots', getPage: '/en/games/slots' },

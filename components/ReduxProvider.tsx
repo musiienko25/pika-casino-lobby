@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useRef } from 'react';
+import { useMemo } from 'react';
 import { Provider } from 'react-redux';
 import { makeStore, type AppStore } from '@/store/store';
 
@@ -16,11 +16,8 @@ interface ReduxProviderProps {
 
 export default function ReduxProvider({ children }: ReduxProviderProps) {
   // Create store instance only once per client
-  const storeRef = useRef<AppStore | undefined>(undefined);
-  if (!storeRef.current) {
-    storeRef.current = makeStore();
-  }
+  const store = useMemo<AppStore>(() => makeStore(), []);
 
-  return <Provider store={storeRef.current}>{children}</Provider>;
+  return <Provider store={store}>{children}</Provider>;
 }
 

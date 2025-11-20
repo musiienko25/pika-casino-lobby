@@ -10,7 +10,7 @@ import type {
   GamesTilesResponse,
 } from '@/types';
 
-const API_BASE_URL = 'https://casino.api.pikakasino.com/v1/pika';
+// API_BASE_URL is defined in app/api/games/route.ts and app/api/config/route.ts
 
 /**
  * Fetches the configuration including menu lobby categories

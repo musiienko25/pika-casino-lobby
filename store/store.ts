@@ -6,8 +6,9 @@
 import { configureStore } from '@reduxjs/toolkit';
 import gamesReducer from './slices/gamesSlice';
 import categoriesReducer from './slices/categoriesSlice';
-import type { Category } from '@/types';
 
+// Create a temporary store instance to infer types
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const store = configureStore({
   reducer: {
     games: gamesReducer,

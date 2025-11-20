@@ -2,6 +2,7 @@
  * Unit tests for SearchBar component
  */
 
+import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { makeStore } from '@/store/store';
@@ -10,7 +11,7 @@ import SearchBar from '@/components/SearchBar';
 // Mock Next.js Image component
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: (props: any) => {
+  default: (props: React.ComponentProps<'img'>) => {
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     return <img {...props} />;
   },

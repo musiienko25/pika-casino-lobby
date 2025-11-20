@@ -15,6 +15,7 @@ import {
   selectSearchQuery,
   selectCategoriesWithSelection,
 } from '@/store/selectors';
+import { analytics } from '@/utils/analytics';
 import { INITIAL_PAGE_SIZE, LOAD_MORE_INCREMENT, INITIAL_LOADER_MIN_TIME } from '@/constants';
 import GameTile from './GameTile';
 import SkeletonLoader from './SkeletonLoader';
@@ -45,6 +46,12 @@ function GamesList() {
   const handleLoadMore = useCallback(() => {
     if (!loading && selectedCategory?.getPage) {
       const newPageSize = pageSize + LOAD_MORE_INCREMENT;
+      
+      // Track load more event
+      if (analytics) {
+        analytics.trackLoadMore(items.length, newPageSize);
+      }
+      
       dispatch(increasePageSize(LOAD_MORE_INCREMENT));
       dispatch(
         fetchGamesByCategory({
@@ -57,7 +64,7 @@ function GamesList() {
         })
       );
     }
-  }, [loading, selectedCategory, pageSize, searchQuery, dispatch]);
+  }, [loading, selectedCategory, pageSize, searchQuery, dispatch, items.length]);
 
   // Fetch games only when category or search changes (initial load)
   useEffect(() => {

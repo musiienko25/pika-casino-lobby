@@ -5,13 +5,18 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import { useAppDispatch } from '@/store/hooks';
 import { setCategories } from '@/store/slices/categoriesSlice';
 import type { Category } from '@/types';
-import CategoriesNav from './CategoriesNav';
-import SearchBar from './SearchBar';
-import GamesList from './GamesList';
+import { analytics } from '@/utils/analytics';
+import CategoriesNav from './CategoriesNav'; // Keep CategoriesNav non-lazy since it's critical for SSR
+import SkeletonLoader from './SkeletonLoader';
+import styles from './LobbyContent.module.scss';
+
+// Lazy load components that are not critical for initial render
+const SearchBar = lazy(() => import('./SearchBar'));
+const GamesList = lazy(() => import('./GamesList'));
 
 interface LobbyContentProps {
   initialCategories: Category[];
@@ -25,13 +30,23 @@ export default function LobbyContent({ initialCategories }: LobbyContentProps) {
     if (initialCategories.length > 0) {
       dispatch(setCategories(initialCategories));
     }
+
+    // Track page view
+    if (analytics) {
+      analytics.trackPageView('/');
+    }
   }, [dispatch, initialCategories]);
 
   return (
     <>
+      {/* CategoriesNav is not lazy-loaded to avoid hydration mismatch with SSR data */}
       <CategoriesNav />
-      <SearchBar />
-      <GamesList />
+      <Suspense fallback={<div className={styles.loadingPlaceholder}>Loading search...</div>}>
+        <SearchBar />
+      </Suspense>
+      <Suspense fallback={<div className={styles.loadingPlaceholder}><SkeletonLoader count={10} /></div>}>
+        <GamesList />
+      </Suspense>
     </>
   );
 }

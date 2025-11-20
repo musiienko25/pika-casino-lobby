@@ -13,6 +13,7 @@ import {
   selectCategoriesLoading,
   selectCategoriesError,
 } from '@/store/selectors';
+import { analytics } from '@/utils/analytics';
 import { INITIAL_LOADER_MIN_TIME } from '@/constants';
 import styles from './CategoriesNav.module.scss';
 
@@ -39,13 +40,19 @@ function CategoriesNav() {
 
   useEffect(() => {
     // Fetch categories on mount only if not already loaded
-    if (items.length === 0) {
+    // This ensures we don't fetch if categories were pre-populated from SSR
+    if (items.length === 0 && !loading) {
       dispatch(fetchCategories());
     }
-  }, [dispatch, items.length]);
+  }, [dispatch, items.length, loading]);
 
   const handleCategoryClick = useCallback((category: typeof items[0]) => {
     dispatch(setSelectedCategory(category));
+    
+    // Track category selection
+    if (analytics) {
+      analytics.trackCategorySelect(category.id, category.name);
+    }
   }, [dispatch]);
 
   // Keyboard navigation

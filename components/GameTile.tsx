@@ -5,10 +5,11 @@
 
 'use client';
 
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import Image from 'next/image';
 import type { GameTile as GameTileType } from '@/types';
 import { GAME_THUMBNAIL_BLUR } from '@/utils/blur';
+import { analytics } from '@/utils/analytics';
 import styles from './GamesList.module.scss';
 
 interface GameTileProps {
@@ -26,8 +27,30 @@ function GameTile({ game, index = 0 }: GameTileProps) {
   const shouldLoadEagerly = index < 8;
   const shouldHavePriority = index < 4;
 
+  const handleClick = useCallback(() => {
+    // Track game click
+    if (analytics) {
+      analytics.trackGameClick(game.id, game.name);
+    }
+    // In a real application, you would navigate to the game page here
+    // router.push(`/games/${game.id}`);
+  }, [game.id, game.name]);
+
   return (
-    <div className={styles.gameTile} role="article" aria-label={`Game: ${game.name}`}>
+    <div 
+      className={styles.gameTile} 
+      role="article" 
+      aria-label={`Game: ${game.name}`}
+      onClick={handleClick}
+      style={{ cursor: 'pointer' }}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+    >
       <div className={styles.gameThumbnail}>
         {hasValidThumbnail ? (
           <Image

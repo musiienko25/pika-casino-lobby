@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchGamesByCategory, increasePageSize } from '@/store/slices/gamesSlice';
@@ -18,6 +18,17 @@ export default function GamesList() {
   const selectedCategory = useAppSelector(
     (state) => state.categories.selectedCategory
   );
+  
+  // Show loader for at least 1 second to prevent flickering
+  const [showInitialLoader, setShowInitialLoader] = useState(true);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowInitialLoader(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Handle Load More - increase pageSize by 20
   const handleLoadMore = () => {
@@ -55,7 +66,8 @@ export default function GamesList() {
     }
   }, [dispatch, selectedCategory, searchQuery]); // Only trigger on category/search change
 
-  if (loading && items.length === 0) {
+  // Show loader if loading or during first second
+  if ((loading || showInitialLoader) && items.length === 0) {
     return (
       <div className={styles.gamesList}>
         <div className={styles.loading}>

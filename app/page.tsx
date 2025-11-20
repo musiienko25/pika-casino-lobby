@@ -4,12 +4,13 @@
  */
 
 import { fetchConfig } from '@/services/api';
+import type { Category } from '@/types';
 import LobbyContent from '@/components/LobbyContent';
 import styles from './page.module.scss';
 
 export default async function Home() {
   // Server-side fetch of categories for initial render (SSR)
-  let initialCategories = [];
+  let initialCategories: Category[] = [];
   try {
     initialCategories = await fetchConfig();
   } catch (error) {

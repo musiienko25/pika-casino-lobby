@@ -11,7 +11,25 @@ export interface Category {
 
 // Config response type
 export interface ConfigResponse {
-  categories: Category[];
+  categories?: Category[];
+  menu?: {
+    lobby?: {
+      items?: Array<{
+        id?: string;
+        slug?: string;
+        title?: string;
+        name?: string;
+        label?: string;
+        getPage?: string;
+        url?: string;
+        path?: string;
+        [key: string]: unknown;
+      }>;
+    };
+    liveLobby?: {
+      items?: unknown[];
+    };
+  };
   [key: string]: unknown; // Allow other properties
 }
 

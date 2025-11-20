@@ -96,7 +96,9 @@ export default function GamesList() {
         {items.map((game) => (
           <div key={game.id} className={styles.gameTile}>
             <div className={styles.gameThumbnail}>
-              {game.thumbnail ? (
+              {game.thumbnail && 
+               typeof game.thumbnail === 'string' && 
+               (game.thumbnail.startsWith('http') || game.thumbnail.startsWith('/')) ? (
                 <Image
                   src={game.thumbnail}
                   alt={game.name || 'Game thumbnail'}
@@ -104,6 +106,13 @@ export default function GamesList() {
                   sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                   className={styles.thumbnailImage}
                   loading="lazy"
+                  onError={(e) => {
+                    // Hide image on error and show placeholder
+                    const target = e.target as HTMLImageElement;
+                    if (target.parentElement) {
+                      target.style.display = 'none';
+                    }
+                  }}
                 />
               ) : (
                 <div className={styles.thumbnailPlaceholder}>

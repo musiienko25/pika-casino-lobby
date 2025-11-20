@@ -5,6 +5,7 @@
 import type {
   Category,
   ConfigResponse,
+  GameTile,
   GamesTilesParams,
   GamesTilesResponse,
 } from '@/types';
@@ -28,7 +29,31 @@ export async function fetchConfig(): Promise<Category[]> {
     const data: ConfigResponse = await response.json();
     
     // Extract categories from the response
-    // The API might return categories in different formats, so we handle both
+    // The API returns categories in menu.lobby.items structure
+    if (data.menu?.lobby?.items && Array.isArray(data.menu.lobby.items)) {
+      // Map the menu items to Category format
+      return data.menu.lobby.items
+        .map((item) => {
+          const menuItem = item as {
+            id?: string;
+            slug?: string;
+            title?: string;
+            name?: string;
+            label?: string;
+            getPage?: string;
+            url?: string;
+            path?: string;
+          };
+          return {
+            id: menuItem.id || menuItem.slug || String(Math.random()),
+            name: menuItem.title || menuItem.name || menuItem.label || 'Unnamed Category',
+            getPage: menuItem.getPage || menuItem.url || menuItem.path || '',
+          };
+        })
+        .filter((cat: Category) => cat.getPage); // Filter out items without getPage
+    }
+    
+    // Fallback: try direct categories array
     if (Array.isArray(data.categories)) {
       return data.categories;
     }
@@ -56,6 +81,7 @@ export async function fetchGamesTiles(
   params: GamesTilesParams = {}
 ): Promise<GamesTilesResponse> {
   try {
+    // Use Next.js API route to avoid CORS issues
     const searchParams = new URLSearchParams();
     
     if (params.search) {
@@ -70,10 +96,14 @@ export async function fetchGamesTiles(
       searchParams.append('pageSize', params.pageSize.toString());
     }
 
-    const queryString = searchParams.toString();
-    const url = `${API_BASE_URL}/en/games/tiles${queryString ? `?${queryString}` : ''}`;
+    if (params.category) {
+      searchParams.append('category', params.category);
+    }
 
-    const response = await fetch(url, {
+    const queryString = searchParams.toString();
+    const apiUrl = `/api/games${queryString ? `?${queryString}` : ''}`;
+
+    const response = await fetch(apiUrl, {
       next: { revalidate: 60 }, // Revalidate every minute
     });
 
@@ -100,12 +130,26 @@ export async function fetchCategoryGames(
   params: Omit<GamesTilesParams, 'category'> = {}
 ): Promise<GamesTilesResponse> {
   try {
-    // If getPageUrl is a full URL, use it directly; otherwise construct it
-    const baseUrl = getPageUrl.startsWith('http') 
-      ? getPageUrl 
-      : `${API_BASE_URL}${getPageUrl.startsWith('/') ? '' : '/'}${getPageUrl}`;
-
+    // Log the getPageUrl to debug
+    console.log('fetchCategoryGames called with getPageUrl:', getPageUrl);
+    
+    // Use Next.js API route to avoid CORS issues
+    // The API route will handle the actual fetch to the external API
     const searchParams = new URLSearchParams();
+    
+    // Extract category slug from getPageUrl
+    // getPageUrl might be like "/casino" or "casino" or a full URL
+    let categorySlug = getPageUrl;
+    if (getPageUrl.startsWith('http://') || getPageUrl.startsWith('https://')) {
+      // Extract slug from full URL
+      const urlObj = new URL(getPageUrl);
+      categorySlug = urlObj.pathname.replace(/^\/en\//, '').replace(/^\//, '');
+    } else if (getPageUrl.startsWith('/')) {
+      categorySlug = getPageUrl.slice(1); // Remove leading slash
+    }
+    
+    // Use our Next.js API route as proxy
+    searchParams.append('category', categorySlug);
     
     if (params.search) {
       searchParams.append('search', params.search);
@@ -120,21 +164,162 @@ export async function fetchCategoryGames(
     }
 
     const queryString = searchParams.toString();
-    const url = `${baseUrl}${queryString ? `?${queryString}` : ''}`;
+    const apiUrl = `/api/games?${queryString}`;
+    
+    console.log('Fetching games via API route:', apiUrl);
 
-    const response = await fetch(url, {
+    const response = await fetch(apiUrl, {
       next: { revalidate: 60 }, // Revalidate every minute
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch category games: ${response.statusText}`);
+      const errorText = await response.text().catch(() => response.statusText);
+      console.error('API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        url: apiUrl,
+        body: errorText,
+      });
+      throw new Error(`Failed to fetch category games: ${response.status} ${response.statusText}`);
     }
 
-    const data: GamesTilesResponse = await response.json();
-    return data;
+    const data = await response.json();
+    console.log('Games response structure:', {
+      keys: Object.keys(data),
+      hasGames: 'games' in data,
+      hasItems: 'items' in data,
+      sample: JSON.stringify(data).substring(0, 500),
+    });
+
+    // Handle different response structures
+    let games: GameTile[] = [];
+    
+    if (Array.isArray(data)) {
+      // If response is directly an array
+      games = data;
+    } else if (Array.isArray(data.games)) {
+      games = data.games;
+    } else if (Array.isArray(data.items)) {
+      games = data.items;
+    } else if (Array.isArray(data.data)) {
+      games = data.data;
+    }
+
+    // Map games to our GameTile format
+    const mappedGames: GameTile[] = games.map((game: Record<string, unknown>, index: number) => {
+      // Handle different field names from API
+      const gameId = String(
+        game.id || 
+        game.platformId || 
+        game.slug || 
+        Math.random()
+      );
+      const gameName = String(
+        game.name || 
+        game.gameText || 
+        game.title || 
+        'Unknown Game'
+      );
+      
+      // Handle image field - can be string or object
+      let gameThumbnail = '';
+      if (typeof game.image === 'string') {
+        gameThumbnail = game.image;
+      } else if (game.image && typeof game.image === 'object') {
+        const imageObj = game.image as Record<string, unknown>;
+        // Try to get URL from nested image object
+        const original = imageObj.original;
+        const small = imageObj.small;
+        const thumbnail = imageObj.thumbnail;
+        
+        // Handle nested image objects (image.original.url, etc.)
+        if (original && typeof original === 'object') {
+          const origObj = original as Record<string, unknown>;
+          gameThumbnail = String(origObj.url || origObj.original || '');
+        } else if (typeof original === 'string') {
+          gameThumbnail = original;
+        } else if (small && typeof small === 'object') {
+          const smallObj = small as Record<string, unknown>;
+          gameThumbnail = String(smallObj.url || smallObj.small || '');
+        } else if (typeof small === 'string') {
+          gameThumbnail = small;
+        } else if (thumbnail && typeof thumbnail === 'object') {
+          const thumbObj = thumbnail as Record<string, unknown>;
+          gameThumbnail = String(thumbObj.url || thumbObj.thumbnail || '');
+        } else if (typeof thumbnail === 'string') {
+          gameThumbnail = thumbnail;
+        } else {
+          // Fallback: try to stringify the first available property
+          gameThumbnail = String(
+            imageObj.url || 
+            imageObj.original || 
+            imageObj.small || 
+            imageObj.thumbnail || 
+            ''
+          );
+        }
+      } else if (typeof game.thumbnail === 'string') {
+        gameThumbnail = game.thumbnail;
+      } else if (game.thumbnail && typeof game.thumbnail === 'object') {
+        // Handle thumbnail as object
+        const thumbObj = game.thumbnail as Record<string, unknown>;
+        gameThumbnail = String(
+          thumbObj.url || 
+          thumbObj.original || 
+          thumbObj.small || 
+          thumbObj.thumbnail || 
+          ''
+        );
+      }
+      
+      // Ensure thumbnail is a valid URL string
+      if (gameThumbnail && !gameThumbnail.startsWith('http') && !gameThumbnail.startsWith('/')) {
+        // If it's not a valid URL, clear it
+        console.warn('Invalid thumbnail URL for game:', gameName, 'thumbnail:', gameThumbnail);
+        gameThumbnail = '';
+      }
+      
+      // Log first game's image structure for debugging
+      if (index === 0) {
+        console.log('Sample game image structure:', {
+          image: game.image,
+          thumbnail: game.thumbnail,
+          mappedThumbnail: gameThumbnail,
+        });
+      }
+      
+      const gameProvider = typeof game.provider === 'string' 
+        ? game.provider 
+        : (typeof game.providerName === 'string' ? game.providerName : undefined);
+
+      // Create a clean game object without image/thumbnail to avoid overwriting
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { image: _image, thumbnail: _thumbnail, ...restGame } = game;
+
+      return {
+        id: gameId,
+        name: gameName,
+        thumbnail: gameThumbnail,
+        provider: gameProvider,
+        ...restGame, // Keep all other properties except image/thumbnail
+      } as GameTile;
+    });
+
+    const result: GamesTilesResponse = {
+      games: mappedGames,
+      totalCount: data.totalCount || data.total || mappedGames.length,
+      pageNumber: data.pageNumber || data.page || 1,
+      pageSize: data.pageSize || data.limit || 20,
+    };
+
+    console.log('Mapped games:', { count: mappedGames.length });
+    return result;
   } catch (error) {
     console.error('Error fetching category games:', error);
-    throw error;
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Unknown error fetching category games');
   }
 }
 

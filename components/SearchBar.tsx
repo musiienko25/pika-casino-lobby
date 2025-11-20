@@ -8,24 +8,25 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setSearchQuery } from '@/store/slices/gamesSlice';
+import { selectSearchQuery } from '@/store/selectors';
+import { useDebounce } from '@/hooks/useDebounce';
 import { SEARCH_DEBOUNCE_MS } from '@/constants';
 import styles from './SearchBar.module.scss';
 
 export default function SearchBar() {
   const dispatch = useAppDispatch();
-  const searchQuery = useAppSelector((state) => state.games.searchQuery);
+  const searchQuery = useAppSelector(selectSearchQuery);
   const [localQuery, setLocalQuery] = useState(searchQuery);
+  
+  // Use debounce hook
+  const debouncedQuery = useDebounce(localQuery, SEARCH_DEBOUNCE_MS);
 
-  // Debounce search input
+  // Update Redux store when debounced value changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (localQuery !== searchQuery) {
-        dispatch(setSearchQuery(localQuery));
-      }
-    }, SEARCH_DEBOUNCE_MS);
-
-    return () => clearTimeout(timer);
-  }, [localQuery, searchQuery, dispatch]);
+    if (debouncedQuery !== searchQuery) {
+      dispatch(setSearchQuery(debouncedQuery));
+    }
+  }, [debouncedQuery, searchQuery, dispatch]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setLocalQuery(e.target.value);

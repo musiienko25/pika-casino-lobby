@@ -8,14 +8,23 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchCategories, setSelectedCategory } from '@/store/slices/categoriesSlice';
+import {
+  selectCategoriesWithSelection,
+  selectCategoriesLoading,
+  selectCategoriesError,
+} from '@/store/selectors';
 import { INITIAL_LOADER_MIN_TIME } from '@/constants';
 import styles from './CategoriesNav.module.scss';
 
 export default function CategoriesNav() {
   const dispatch = useAppDispatch();
-  const { items, selectedCategory, loading, error } = useAppSelector(
-    (state) => state.categories
+  
+  // Use memoized selectors
+  const { categories: items, selectedCategory, hasCategories } = useAppSelector(
+    selectCategoriesWithSelection
   );
+  const loading = useAppSelector(selectCategoriesLoading);
+  const error = useAppSelector(selectCategoriesError);
   
   // Show loader for at least 1 second to prevent flickering
   const [showInitialLoader, setShowInitialLoader] = useState(true);
@@ -40,7 +49,7 @@ export default function CategoriesNav() {
   }, [dispatch]);
 
   // Show loader if loading or during first second
-  if ((loading || showInitialLoader) && items.length === 0) {
+  if ((loading || showInitialLoader) && !hasCategories) {
     return (
       <nav className={styles.categoriesNav}>
         <div className={styles.loading}>Loading categories...</div>
@@ -48,7 +57,7 @@ export default function CategoriesNav() {
     );
   }
 
-  if (error && items.length === 0) {
+  if (error && !hasCategories) {
     return (
       <nav className={styles.categoriesNav}>
         <div className={styles.error}>Error: {error}</div>
@@ -56,7 +65,7 @@ export default function CategoriesNav() {
     );
   }
 
-  if (items.length === 0) {
+  if (!hasCategories) {
     return (
       <nav className={styles.categoriesNav}>
         <div className={styles.empty}>No categories available</div>

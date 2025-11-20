@@ -8,6 +8,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchGamesByCategory, increasePageSize } from '@/store/slices/gamesSlice';
+import {
+  selectGamesWithPagination,
+  selectGamesLoading,
+  selectGamesError,
+  selectSearchQuery,
+  selectCategoriesWithSelection,
+} from '@/store/selectors';
 import { INITIAL_PAGE_SIZE, LOAD_MORE_INCREMENT, INITIAL_LOADER_MIN_TIME } from '@/constants';
 import GameTile from './GameTile';
 import SkeletonLoader from './SkeletonLoader';
@@ -15,11 +22,13 @@ import styles from './GamesList.module.scss';
 
 export default function GamesList() {
   const dispatch = useAppDispatch();
-  const { items, loading, error, searchQuery, pageNumber, pageSize, totalCount } =
-    useAppSelector((state) => state.games);
-  const selectedCategory = useAppSelector(
-    (state) => state.categories.selectedCategory
-  );
+  
+  // Use memoized selectors
+  const { games: items, totalCount, pageSize, pageNumber } = useAppSelector(selectGamesWithPagination);
+  const loading = useAppSelector(selectGamesLoading);
+  const error = useAppSelector(selectGamesError);
+  const searchQuery = useAppSelector(selectSearchQuery);
+  const { selectedCategory } = useAppSelector(selectCategoriesWithSelection);
   
   // Show loader for at least 1 second to prevent flickering
   const [showInitialLoader, setShowInitialLoader] = useState(true);

@@ -13,23 +13,46 @@ describe('API Service', () => {
   });
 
   describe('fetchConfig', () => {
-    it('should fetch and return categories', async () => {
+    it('should fetch and return categories (client-side)', async () => {
+      const mockConfigResponse = {
+        menu: {
+          lobby: {
+            items: [
+              { 
+                id: '1', 
+                title: 'Slots', 
+                getPage: '/en/games/slots',
+              },
+              { 
+                id: '2', 
+                title: 'Table Games', 
+                getPage: '/en/games/table',
+              },
+            ],
+          },
+        },
+      };
+
       const mockCategories = [
         { id: '1', name: 'Slots', getPage: '/en/games/slots' },
         { id: '2', name: 'Table Games', getPage: '/en/games/table' },
       ];
 
+      // Mock client-side: calls /api/config (window is defined in jsdom)
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ categories: mockCategories }),
+        json: async () => mockConfigResponse,
       });
 
       const result = await fetchConfig();
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://casino.api.pikakasino.com/v1/pika/en/config',
+        '/api/config',
         expect.objectContaining({
-          next: { revalidate: 3600 },
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0',
+          },
         })
       );
       expect(result).toEqual(mockCategories);
@@ -52,7 +75,7 @@ describe('API Service', () => {
   });
 
   describe('fetchGamesTiles', () => {
-    it('should fetch games with search query', async () => {
+    it('should fetch games with search query (client-side)', async () => {
       const mockGames = {
         games: [
           { id: '1', name: 'Game 1', thumbnail: 'thumb1.jpg' },
@@ -61,6 +84,7 @@ describe('API Service', () => {
         totalCount: 2,
       };
 
+      // Mock client-side: calls /api/games (window is defined in jsdom)
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockGames,
@@ -69,15 +93,16 @@ describe('API Service', () => {
       const result = await fetchGamesTiles({ search: 'test', pageNumber: 1 });
 
       expect(fetch).toHaveBeenCalledWith(
-        'https://casino.api.pikakasino.com/v1/pika/en/games/tiles?search=test&pageNumber=1',
-        expect.any(Object)
+        '/api/games?search=test&pageNumber=1'
       );
-      expect(result).toEqual(mockGames);
+      expect(result.games).toEqual(mockGames.games);
+      expect(result.totalCount).toBe(2);
     });
 
-    it('should fetch games without parameters', async () => {
+    it('should fetch games without parameters (client-side)', async () => {
       const mockGames = { games: [], totalCount: 0 };
 
+      // Mock client-side: calls /api/games (window is defined in jsdom)
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => mockGames,
@@ -85,11 +110,9 @@ describe('API Service', () => {
 
       const result = await fetchGamesTiles();
 
-      expect(fetch).toHaveBeenCalledWith(
-        'https://casino.api.pikakasino.com/v1/pika/en/games/tiles',
-        expect.any(Object)
-      );
-      expect(result).toEqual(mockGames);
+      expect(fetch).toHaveBeenCalledWith('/api/games');
+      expect(result.games).toEqual([]);
+      expect(result.totalCount).toBe(0);
     });
   });
 });

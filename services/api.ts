@@ -18,9 +18,8 @@ const API_BASE_URL = 'https://casino.api.pikakasino.com/v1/pika';
  */
 export async function fetchConfig(): Promise<Category[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/en/config`, {
-      next: { revalidate: 3600 }, // Revalidate every hour
-    });
+    // Use Next.js API route to avoid CORS issues
+    const response = await fetch('/api/config');
 
     if (!response.ok) {
       throw new Error(`Failed to fetch config: ${response.statusText}`);
@@ -103,9 +102,7 @@ export async function fetchGamesTiles(
     const queryString = searchParams.toString();
     const apiUrl = `/api/games${queryString ? `?${queryString}` : ''}`;
 
-    const response = await fetch(apiUrl, {
-      next: { revalidate: 60 }, // Revalidate every minute
-    });
+    const response = await fetch(apiUrl);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch games: ${response.statusText}`);
@@ -168,9 +165,7 @@ export async function fetchCategoryGames(
     
     console.log('Fetching games via API route:', apiUrl);
 
-    const response = await fetch(apiUrl, {
-      next: { revalidate: 60 }, // Revalidate every minute
-    });
+    const response = await fetch(apiUrl);
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => response.statusText);

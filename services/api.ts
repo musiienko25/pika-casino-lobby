@@ -300,14 +300,37 @@ export async function fetchCategoryGames(
       } as GameTile;
     });
 
+    // Extract pagination info
+    const totalCount = data.totalCount || data.total || data.count || mappedGames.length;
+    const requestedPageSize = params.pageSize || 40;
+    const responsePageNumber = params.pageNumber || 1;
+    
+    // If API returned more games than requested, limit to requested amount
+    // This handles the case where API returns all games regardless of pageSize
+    let resultGames = mappedGames;
+    if (mappedGames.length > requestedPageSize) {
+      // API returned all games, limit to requested pageSize
+      resultGames = mappedGames.slice(0, requestedPageSize);
+      console.log('API returned more games than requested, limiting:', {
+        returned: mappedGames.length,
+        requested: requestedPageSize,
+        limited: resultGames.length,
+      });
+    }
+
     const result: GamesTilesResponse = {
-      games: mappedGames,
-      totalCount: data.totalCount || data.total || mappedGames.length,
-      pageNumber: data.pageNumber || data.page || 1,
-      pageSize: data.pageSize || data.limit || 20,
+      games: resultGames,
+      totalCount: totalCount || mappedGames.length, // Use total from API or all games count
+      pageNumber: responsePageNumber,
+      pageSize: requestedPageSize,
     };
 
-    console.log('Mapped games:', { count: mappedGames.length });
+    console.log('Mapped games:', { 
+      count: mappedGames.length,
+      returned: resultGames.length,
+      requested: requestedPageSize,
+      totalCount,
+    });
     return result;
   } catch (error) {
     console.error('Error fetching category games:', error);

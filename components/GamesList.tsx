@@ -8,32 +8,53 @@
 import { useEffect } from 'react';
 import Image from 'next/image';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchGamesByCategory } from '@/store/slices/gamesSlice';
+import { fetchGamesByCategory, increasePageSize, setPageSize } from '@/store/slices/gamesSlice';
 import styles from './GamesList.module.scss';
 
 export default function GamesList() {
   const dispatch = useAppDispatch();
-  const { items, loading, error, searchQuery, pageNumber, pageSize } =
+  const { items, loading, error, searchQuery, pageNumber, pageSize, totalCount } =
     useAppSelector((state) => state.games);
   const selectedCategory = useAppSelector(
     (state) => state.categories.selectedCategory
   );
 
-  useEffect(() => {
-    // Fetch games when category or search changes
-    if (selectedCategory?.getPage) {
+  // Handle Load More - increase pageSize by 20
+  const handleLoadMore = () => {
+    if (!loading && selectedCategory?.getPage) {
+      const newPageSize = pageSize + 20;
+      dispatch(increasePageSize(20));
       dispatch(
         fetchGamesByCategory({
           getPageUrl: selectedCategory.getPage,
           params: {
             search: searchQuery || undefined,
-            pageNumber,
-            pageSize,
+            pageNumber: 1, // Always page 1 when increasing pageSize
+            pageSize: newPageSize,
           },
         })
       );
     }
-  }, [dispatch, selectedCategory, searchQuery, pageNumber, pageSize]);
+  };
+
+  // Fetch games only when category or search changes (initial load)
+  useEffect(() => {
+    if (selectedCategory?.getPage) {
+      // Reset pageSize to 60 when category/search changes
+      dispatch(setPageSize(60));
+      // Fetch initial games
+      dispatch(
+        fetchGamesByCategory({
+          getPageUrl: selectedCategory.getPage,
+          params: {
+            search: searchQuery || undefined,
+            pageNumber: 1,
+            pageSize: 60, // Always start with 60
+          },
+        })
+      );
+    }
+  }, [dispatch, selectedCategory, searchQuery]); // Only trigger on category/search change
 
   if (loading && items.length === 0) {
     return (
@@ -129,10 +150,34 @@ export default function GamesList() {
           </div>
         ))}
       </div>
+      
+      {/* Load More Button */}
+      {!loading && items.length < totalCount && totalCount > 0 && (
+        <div className={styles.loadMoreContainer}>
+          <button
+            type="button"
+            onClick={handleLoadMore}
+            className={styles.loadMoreButton}
+            disabled={loading}
+          >
+            Load More Games (+20)
+          </button>
+          <p className={styles.loadMoreInfo}>
+            Showing {items.length} of {totalCount} games
+          </p>
+        </div>
+      )}
+      
       {loading && items.length > 0 && (
         <div className={styles.loadingMore}>
           <div className={styles.spinner}></div>
           <p>Loading more games...</p>
+        </div>
+      )}
+      
+      {!loading && items.length >= totalCount && items.length > 0 && totalCount > 0 && (
+        <div className={styles.endOfList}>
+          <p>All games loaded ({items.length} of {totalCount})</p>
         </div>
       )}
     </div>

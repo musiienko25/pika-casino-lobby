@@ -22,7 +22,7 @@ const initialState: GamesState = {
   error: null,
   searchQuery: '',
   pageNumber: 1,
-  pageSize: 20,
+  pageSize: 60, // Start with 60 games
   totalCount: 0,
 };
 
@@ -73,6 +73,8 @@ const gamesSlice = createSlice({
     setSearchQuery: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload;
       state.pageNumber = 1; // Reset to first page when searching
+      state.pageSize = 60; // Reset to initial pageSize
+      state.items = []; // Clear items on new search
     },
     /**
      * Set page number
@@ -86,6 +88,12 @@ const gamesSlice = createSlice({
     setPageSize: (state, action: PayloadAction<number>) => {
       state.pageSize = action.payload;
       state.pageNumber = 1; // Reset to first page when changing page size
+    },
+    /**
+     * Increase page size by specified amount (for dynamic loading)
+     */
+    increasePageSize: (state, action: PayloadAction<number>) => {
+      state.pageSize = state.pageSize + (action.payload || 20);
     },
     /**
      * Clear games list
@@ -126,10 +134,27 @@ const gamesSlice = createSlice({
       })
       .addCase(fetchGamesByCategory.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload.games || [];
+        const newGames = action.payload.games || [];
+        
+        // If pageSize increased, append new games; otherwise replace
+        const requestedPageSize = action.meta.arg.params?.pageSize || state.pageSize;
+        const isIncreasingPageSize = requestedPageSize > state.pageSize;
+        
+        if (isIncreasingPageSize) {
+          // Append new games, avoiding duplicates
+          const existingIds = new Set(state.items.map((game) => game.id));
+          const uniqueNewGames = newGames.filter(
+            (game) => !existingIds.has(game.id)
+          );
+          state.items = [...state.items, ...uniqueNewGames];
+        } else {
+          // Replace items (new category/search or first load)
+          state.items = newGames;
+        }
+        
         state.totalCount = action.payload.totalCount || 0;
         state.pageNumber = action.payload.pageNumber || state.pageNumber;
-        state.pageSize = action.payload.pageSize || state.pageSize;
+        state.pageSize = requestedPageSize; // Use requested pageSize, not from API
       })
       .addCase(fetchGamesByCategory.rejected, (state, action) => {
         state.loading = false;
@@ -142,6 +167,7 @@ export const {
   setSearchQuery,
   setPageNumber,
   setPageSize,
+  increasePageSize,
   clearGames,
   clearError,
 } = gamesSlice.actions;

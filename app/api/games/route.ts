@@ -45,8 +45,6 @@ export async function GET(request: NextRequest) {
     const queryString = queryParams.toString();
     const finalUrl = `${url}${queryString ? `?${queryString}` : ''}`;
 
-    console.log('API Route - Fetching from:', finalUrl);
-
     const response = await fetch(finalUrl, {
       headers: {
         'Accept': 'application/json',

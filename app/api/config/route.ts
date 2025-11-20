@@ -11,8 +11,6 @@ export async function GET() {
   try {
     const url = `${API_BASE_URL}/en/config`;
 
-    console.log('API Route - Fetching config from:', url);
-
     const response = await fetch(url, {
       headers: {
         'Accept': 'application/json',

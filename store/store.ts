@@ -6,7 +6,7 @@
 
 import { createStore, combineReducers, applyMiddleware, type Store, type AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
-// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const thunk = require('redux-thunk').thunk;
 import gamesReducer from './slices/gamesSlice';
 import categoriesReducer from './slices/categoriesSlice';
@@ -39,6 +39,5 @@ export function makeStore(preloadedState?: DeepPartial<RootState>): AppStore {
   // Convert DeepPartial to RootState for preloadedState
   const initialState = preloadedState as RootState | undefined;
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   return createStore(rootReducer, initialState, applyMiddleware(thunk));
 }

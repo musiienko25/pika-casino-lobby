@@ -11,6 +11,7 @@ import type {
 } from '@/types';
 import { API_TIMEOUT } from '@/constants';
 import { retryWithBackoff } from '@/utils/retry';
+import { logger } from '@/utils/logger';
 
 // API_BASE_URL is defined in app/api/games/route.ts and app/api/config/route.ts
 
@@ -85,7 +86,7 @@ export async function fetchConfig(): Promise<Category[]> {
       return categories;
     }
 
-    console.warn('Unexpected config response structure:', data);
+    logger.warn('Unexpected config response structure', { data });
     return [];
   }, {
     maxRetries: 3,
@@ -188,12 +189,16 @@ export async function fetchCategoryGames(
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => response.statusText);
-      console.error('API Error Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        url: apiUrl,
-        body: errorText,
-      });
+      logger.error(
+        'API Error Response',
+        new Error(`Failed to fetch category games: ${response.status} ${response.statusText}`),
+        {
+          status: response.status,
+          statusText: response.statusText,
+          url: apiUrl,
+          body: errorText,
+        }
+      );
       throw new Error(`Failed to fetch category games: ${response.status} ${response.statusText}`);
     }
 
@@ -301,7 +306,10 @@ export async function fetchCategoryGames(
       // Ensure thumbnail is a valid URL string
       if (gameThumbnail && !gameThumbnail.startsWith('http') && !gameThumbnail.startsWith('/')) {
         // If it's not a valid URL, clear it
-        console.warn('Invalid thumbnail URL for game:', gameName, 'thumbnail:', gameThumbnail);
+        logger.warn('Invalid thumbnail URL for game', {
+          gameName,
+          thumbnail: gameThumbnail,
+        });
         gameThumbnail = '';
       }
       

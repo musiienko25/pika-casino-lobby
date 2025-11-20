@@ -6,6 +6,7 @@
 'use client';
 
 import { Component, type ReactNode } from 'react';
+import { logger } from '@/utils/logger';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -33,7 +34,14 @@ export default class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error(
+      'ErrorBoundary caught an error',
+      error,
+      {
+        componentStack: errorInfo.componentStack,
+        errorBoundary: true,
+      }
+    );
     this.setState({ errorInfo });
   }
 

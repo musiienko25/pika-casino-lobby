@@ -6,17 +6,19 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cache, rateLimiter } from '@/utils/cache';
+import { logger } from '@/utils/logger';
 
 const API_BASE_URL = 'https://casino.api.pikakasino.com/v1/pika';
 const CACHE_TTL = 3600000; // 1 hour cache (config changes rarely)
 const RATE_LIMIT_REQUESTS = 100; // 100 requests per minute
 
 export async function GET(request: NextRequest) {
+  // Rate limiting
+  const clientId = request.headers.get('x-forwarded-for') || 
+                   request.headers.get('x-real-ip') || 
+                   'unknown';
+  
   try {
-    // Rate limiting
-    const clientId = request.headers.get('x-forwarded-for') || 
-                     request.headers.get('x-real-ip') || 
-                     'unknown';
     
     if (!rateLimiter.isAllowed(clientId)) {
       return NextResponse.json(
@@ -84,7 +86,11 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('API route error:', error);
+    logger.error(
+      'API route error',
+      error instanceof Error ? error : new Error(String(error)),
+      { route: '/api/config', clientId }
+    );
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

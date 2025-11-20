@@ -126,8 +126,8 @@ export default function GamesList() {
   return (
     <div className={styles.gamesList}>
       <div className={styles.gamesGrid}>
-        {items.map((game) => (
-          <GameTile key={game.id} game={game} />
+        {items.map((game, index) => (
+          <GameTile key={game.id} game={game} index={index} />
         ))}
       </div>
       

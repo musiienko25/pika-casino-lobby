@@ -12,13 +12,17 @@ import styles from './GamesList.module.scss';
 
 interface GameTileProps {
   game: GameTileType;
+  index?: number;
 }
 
-function GameTile({ game }: GameTileProps) {
+function GameTile({ game, index = 0 }: GameTileProps) {
   const hasValidThumbnail = 
     game.thumbnail &&
     typeof game.thumbnail === 'string' &&
     (game.thumbnail.startsWith('http') || game.thumbnail.startsWith('/'));
+
+  // Load first 8 images eagerly (above the fold), rest lazily
+  const shouldLoadEagerly = index < 8;
 
   return (
     <div className={styles.gameTile} role="article" aria-label={`Game: ${game.name}`}>
@@ -30,7 +34,8 @@ function GameTile({ game }: GameTileProps) {
             fill
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
             className={styles.thumbnailImage}
-            loading="lazy"
+            loading={shouldLoadEagerly ? 'eager' : 'lazy'}
+            priority={shouldLoadEagerly}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               if (target.parentElement) {

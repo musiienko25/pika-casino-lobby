@@ -21,8 +21,9 @@ function GameTile({ game, index = 0 }: GameTileProps) {
     typeof game.thumbnail === 'string' &&
     (game.thumbnail.startsWith('http') || game.thumbnail.startsWith('/'));
 
-  // Load first 8 images eagerly (above the fold), rest lazily
+  // Load first 4 images with priority (above the fold), next 4 eagerly, rest lazily
   const shouldLoadEagerly = index < 8;
+  const shouldHavePriority = index < 4;
 
   return (
     <div className={styles.gameTile} role="article" aria-label={`Game: ${game.name}`}>
@@ -35,7 +36,7 @@ function GameTile({ game, index = 0 }: GameTileProps) {
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
             className={styles.thumbnailImage}
             loading={shouldLoadEagerly ? 'eager' : 'lazy'}
-            priority={shouldLoadEagerly}
+            priority={shouldHavePriority}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               if (target.parentElement) {

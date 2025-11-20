@@ -7,6 +7,11 @@ import { fetchConfig, fetchGamesTiles } from '@/services/api';
 // Mock fetch globally
 global.fetch = jest.fn();
 
+// Mock retryWithBackoff to avoid delays in tests
+jest.mock('@/utils/retry', () => ({
+  retryWithBackoff: (fn: () => Promise<unknown>) => fn(),
+}));
+
 describe('API Service', () => {
   beforeEach(() => {
     (fetch as jest.Mock).mockClear();

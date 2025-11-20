@@ -31,7 +31,7 @@ describe('SearchBar', () => {
       </Provider>
     );
 
-    const input = screen.getByPlaceholderText('Search games...');
+    const input = screen.getByPlaceholderText(/Search games/i);
     expect(input).toBeInTheDocument();
   });
 
@@ -43,7 +43,7 @@ describe('SearchBar', () => {
     );
 
     const input = screen.getByPlaceholderText(
-      'Search games...'
+      /Search games/i
     ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'test game' } });
 
@@ -57,7 +57,7 @@ describe('SearchBar', () => {
       </Provider>
     );
 
-    const input = screen.getByPlaceholderText('Search games...');
+    const input = screen.getByPlaceholderText(/Search games/i);
     fireEvent.change(input, { target: { value: 'test' } });
 
     const clearButton = screen.getByLabelText('Clear search');
@@ -72,7 +72,7 @@ describe('SearchBar', () => {
     );
 
     const input = screen.getByPlaceholderText(
-      'Search games...'
+      /Search games/i
     ) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'test' } });
 

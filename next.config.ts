@@ -22,12 +22,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
-  // Bundle optimization
-  swcMinify: true,
   // Optimize production builds
   productionBrowserSourceMaps: false,
-  // Optimize fonts
-  optimizeFonts: true,
+  // Note: swcMinify is enabled by default in Next.js 13+
 };
 
 export default nextConfig;

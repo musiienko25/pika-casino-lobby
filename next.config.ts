@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
   compress: true,
   // Enable React strict mode for better development experience
   reactStrictMode: true,
+  // Set Turbopack root directory to silence warning about multiple lockfiles
+  turbopack: {
+    root: process.cwd(),
+  },
 };
 
 export default nextConfig;

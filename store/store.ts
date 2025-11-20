@@ -1,36 +1,44 @@
 /**
  * Redux store factory for SSR
  * Creates a new store instance for each request
+ * Using plain Redux (not Redux Toolkit)
  */
 
-import { configureStore } from '@reduxjs/toolkit';
+import { createStore, combineReducers, applyMiddleware, type Store, type AnyAction } from 'redux';
+import type { ThunkDispatch } from 'redux-thunk';
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+const thunk = require('redux-thunk').thunk;
 import gamesReducer from './slices/gamesSlice';
 import categoriesReducer from './slices/categoriesSlice';
+import type { GamesState } from './slices/gamesSlice';
+import type { CategoriesState } from './slices/categoriesSlice';
 
-// Create a temporary store instance to infer types
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const store = configureStore({
-  reducer: {
-    games: gamesReducer,
-    categories: categoriesReducer,
-  },
+// Root state type
+export interface RootState {
+  games: GamesState;
+  categories: CategoriesState;
+}
+
+// Root reducer
+const rootReducer = combineReducers({
+  games: gamesReducer,
+  categories: categoriesReducer,
 });
 
-export type AppStore = typeof store;
-export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
+// Store type
+export type AppStore = Store<RootState, AnyAction>;
+export type AppDispatch = ThunkDispatch<RootState, unknown, AnyAction>;
 
+// Deep partial type for preloaded state
 type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-export function makeStore(preloadedState?: DeepPartial<RootState>) {
-  return configureStore({
-    reducer: {
-      games: gamesReducer,
-      categories: categoriesReducer,
-    },
-    preloadedState: preloadedState as RootState | undefined,
-  });
-}
+// Create store factory
+export function makeStore(preloadedState?: DeepPartial<RootState>): AppStore {
+  // Convert DeepPartial to RootState for preloadedState
+  const initialState = preloadedState as RootState | undefined;
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  return createStore(rootReducer, initialState, applyMiddleware(thunk));
+}

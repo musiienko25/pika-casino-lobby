@@ -54,13 +54,10 @@ function GamesList() {
       
       dispatch(increasePageSize(LOAD_MORE_INCREMENT));
       dispatch(
-        fetchGamesByCategory({
-          getPageUrl: selectedCategory.getPage,
-          params: {
-            search: searchQuery || undefined,
-            pageNumber: 1, // Always page 1 when increasing pageSize
-            pageSize: newPageSize,
-          },
+        fetchGamesByCategory(selectedCategory.getPage, {
+          search: searchQuery || undefined,
+          pageNumber: 1, // Always page 1 when increasing pageSize
+          pageSize: newPageSize,
         })
       );
     }
@@ -72,13 +69,10 @@ function GamesList() {
       // Fetch initial games with pageSize 10
       // pageSize will be updated in Redux slice from the request params
       dispatch(
-        fetchGamesByCategory({
-          getPageUrl: selectedCategory.getPage,
-          params: {
-            search: searchQuery || undefined,
-            pageNumber: 1,
-            pageSize: INITIAL_PAGE_SIZE,
-          },
+        fetchGamesByCategory(selectedCategory.getPage, {
+          search: searchQuery || undefined,
+          pageNumber: 1,
+          pageSize: INITIAL_PAGE_SIZE,
         })
       );
     }
@@ -105,13 +99,10 @@ function GamesList() {
             onClick={() => {
               if (selectedCategory?.getPage) {
                 dispatch(
-                  fetchGamesByCategory({
-                    getPageUrl: selectedCategory.getPage,
-                    params: {
-                      search: searchQuery || undefined,
-                      pageNumber,
-                      pageSize,
-                    },
+                  fetchGamesByCategory(selectedCategory.getPage, {
+                    search: searchQuery || undefined,
+                    pageNumber,
+                    pageSize,
                   })
                 );
               }

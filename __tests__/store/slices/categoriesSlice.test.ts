@@ -5,8 +5,8 @@
 import categoriesReducer, {
   setCategories,
   setSelectedCategory,
-  fetchCategories,
   clearError,
+  CATEGORIES_ACTION_TYPES,
 } from '@/store/slices/categoriesSlice';
 import type { Category } from '@/types';
 
@@ -60,7 +60,7 @@ describe('categoriesSlice', () => {
 
   describe('fetchCategories async thunk', () => {
     it('should handle pending state', () => {
-      const action = { type: fetchCategories.pending.type };
+      const action = { type: CATEGORIES_ACTION_TYPES.FETCH_CATEGORIES_PENDING };
       const state = categoriesReducer(initialState, action);
 
       expect(state.loading).toBe(true);
@@ -69,7 +69,7 @@ describe('categoriesSlice', () => {
 
     it('should handle fulfilled state', () => {
       const action = {
-        type: fetchCategories.fulfilled.type,
+        type: CATEGORIES_ACTION_TYPES.FETCH_CATEGORIES_FULFILLED,
         payload: mockCategories,
       };
       const state = categoriesReducer(initialState, action);
@@ -82,7 +82,7 @@ describe('categoriesSlice', () => {
     it('should handle rejected state', () => {
       const errorMessage = 'Failed to fetch';
       const action = {
-        type: fetchCategories.rejected.type,
+        type: CATEGORIES_ACTION_TYPES.FETCH_CATEGORIES_REJECTED,
         payload: errorMessage,
       };
       const state = categoriesReducer(initialState, action);

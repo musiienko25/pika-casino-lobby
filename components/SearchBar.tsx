@@ -41,11 +41,14 @@ export default function SearchBar() {
       <div className={styles.searchInputWrapper}>
         <input
           type="text"
+          id="search-games-input"
+          name="search-games"
           className={styles.searchInput}
           placeholder="Search games..."
           value={localQuery}
           onChange={handleChange}
           aria-label="Search games"
+          autoComplete="off"
         />
         {localQuery && (
           <button

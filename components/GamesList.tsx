@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, memo } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchGamesByCategory, increasePageSize } from '@/store/slices/gamesSlice';
 import {
@@ -20,7 +20,7 @@ import GameTile from './GameTile';
 import SkeletonLoader from './SkeletonLoader';
 import styles from './GamesList.module.scss';
 
-export default function GamesList() {
+function GamesList() {
   const dispatch = useAppDispatch();
   
   // Use memoized selectors
@@ -174,4 +174,6 @@ export default function GamesList() {
     </div>
   );
 }
+
+export default memo(GamesList);
 

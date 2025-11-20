@@ -10,6 +10,7 @@ import type {
   GamesTilesResponse,
 } from '@/types';
 import { API_TIMEOUT } from '@/constants';
+import { retryWithBackoff } from '@/utils/retry';
 
 // API_BASE_URL is defined in app/api/games/route.ts and app/api/config/route.ts
 
@@ -18,7 +19,7 @@ import { API_TIMEOUT } from '@/constants';
  * @returns Promise with categories array
  */
 export async function fetchConfig(): Promise<Category[]> {
-  try {
+  return retryWithBackoff(async () => {
     // On server, use absolute URL for API route or call API directly with longer timeout
     // On client, use relative URL for API route
     const isServer = typeof window === 'undefined';
@@ -86,10 +87,11 @@ export async function fetchConfig(): Promise<Category[]> {
 
     console.warn('Unexpected config response structure:', data);
     return [];
-  } catch (error) {
-    console.error('Error fetching config:', error);
-    throw error;
-  }
+  }, {
+    maxRetries: 3,
+    initialDelay: 1000,
+    maxDelay: 10000,
+  });
 }
 
 /**
@@ -100,7 +102,7 @@ export async function fetchConfig(): Promise<Category[]> {
 export async function fetchGamesTiles(
   params: GamesTilesParams = {}
 ): Promise<GamesTilesResponse> {
-  try {
+  return retryWithBackoff(async () => {
     // Use Next.js API route to avoid CORS issues
     const searchParams = new URLSearchParams();
     
@@ -131,10 +133,11 @@ export async function fetchGamesTiles(
 
     const data: GamesTilesResponse = await response.json();
     return data;
-  } catch (error) {
-    console.error('Error fetching games tiles:', error);
-    throw error;
-  }
+  }, {
+    maxRetries: 3,
+    initialDelay: 1000,
+    maxDelay: 10000,
+  });
 }
 
 /**
@@ -147,7 +150,7 @@ export async function fetchCategoryGames(
   getPageUrl: string,
   params: Omit<GamesTilesParams, 'category'> = {}
 ): Promise<GamesTilesResponse> {
-  try {
+  return retryWithBackoff(async () => {
     // Use Next.js API route to avoid CORS issues
     // The API route will handle the actual fetch to the external API
     const searchParams = new URLSearchParams();
@@ -339,12 +342,10 @@ export async function fetchCategoryGames(
     };
 
     return result;
-  } catch (error) {
-    console.error('Error fetching category games:', error);
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error('Unknown error fetching category games');
-  }
+  }, {
+    maxRetries: 3,
+    initialDelay: 1000,
+    maxDelay: 10000,
+  });
 }
 

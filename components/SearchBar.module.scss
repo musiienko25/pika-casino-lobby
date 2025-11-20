@@ -5,9 +5,12 @@
 
 .searchBar {
   width: 100%;
+  min-height: 80px; // Fixed height to prevent layout shift
   padding: 1.5rem 1rem;
   background: white;
   border-bottom: 1px solid #e0e0e0;
+  // Prevent layout shift during load
+  contain: layout style;
 }
 
 .searchInputWrapper {
@@ -16,6 +19,8 @@
   position: relative;
   display: flex;
   align-items: center;
+  // Prevent layout shift
+  min-height: 48px; // Match input height
 }
 
 .searchInput {
@@ -25,8 +30,13 @@
   border-radius: 30px;
   font-size: 1rem;
   color: #212121; // Dark text color for better visibility
-  transition: all 0.3s ease;
+  // Optimize transitions - only animate specific properties
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
   background: #f5f5f5;
+  // Prevent layout shift
+  will-change: border-color, background-color;
+  // Ensure consistent rendering
+  transform: translateZ(0);
 
   &:focus {
     outline: none;

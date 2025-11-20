@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchCategories, setSelectedCategory } from '@/store/slices/categoriesSlice';
 import styles from './CategoriesNav.module.scss';
@@ -15,6 +15,17 @@ export default function CategoriesNav() {
   const { items, selectedCategory, loading, error } = useAppSelector(
     (state) => state.categories
   );
+  
+  // Show loader for at least 1 second to prevent flickering
+  const [showInitialLoader, setShowInitialLoader] = useState(true);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowInitialLoader(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     // Fetch categories on mount only if not already loaded
@@ -27,7 +38,8 @@ export default function CategoriesNav() {
     dispatch(setSelectedCategory(category));
   };
 
-  if (loading && items.length === 0) {
+  // Show loader if loading or during first second
+  if ((loading || showInitialLoader) && items.length === 0) {
     return (
       <nav className={styles.categoriesNav}>
         <div className={styles.loading}>Loading categories...</div>

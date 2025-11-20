@@ -18,17 +18,27 @@ import type {
  */
 export async function fetchConfig(): Promise<Category[]> {
   try {
-    // On server, call API directly; on client, use API route to avoid CORS
+    // On server, use absolute URL for API route or call API directly with longer timeout
+    // On client, use relative URL for API route
     const isServer = typeof window === 'undefined';
-    const apiUrl = isServer
-      ? 'https://casino.api.pikakasino.com/v1/pika/en/config'
-      : '/api/config';
+    let apiUrl: string;
+    
+    if (isServer) {
+      // On server, call API directly with longer timeout
+      // Using API route on server requires absolute URL which is complex
+      apiUrl = 'https://casino.api.pikakasino.com/v1/pika/en/config';
+    } else {
+      // On client, use API route to avoid CORS
+      apiUrl = '/api/config';
+    }
 
     const response = await fetch(apiUrl, {
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'Mozilla/5.0',
       },
+      // Increase timeout for server-side requests
+      ...(isServer && { signal: AbortSignal.timeout(30000) }), // 30 seconds for server
     });
 
     if (!response.ok) {

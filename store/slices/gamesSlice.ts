@@ -118,7 +118,7 @@ const gamesSlice = createSlice({
       })
       .addCase(fetchGames.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload.games || [];
+        state.items = [...(action.payload.games || [])];
         state.totalCount = action.payload.totalCount || 0;
         state.pageNumber = action.payload.pageNumber || state.pageNumber;
         state.pageSize = action.payload.pageSize || state.pageSize;
@@ -149,7 +149,7 @@ const gamesSlice = createSlice({
           state.items = [...state.items, ...uniqueNewGames];
         } else {
           // Replace items (new category/search or first load)
-          state.items = newGames;
+          state.items = [...newGames];
         }
         
         state.totalCount = action.payload.totalCount || 0;

@@ -10,11 +10,13 @@ import { Component, type ReactNode } from 'react';
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
+  onReset?: () => void;
 }
 
 interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  errorInfo: React.ErrorInfo | null;
 }
 
 export default class ErrorBoundary extends Component<
@@ -23,16 +25,24 @@ export default class ErrorBoundary extends Component<
 > {
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+    this.setState({ errorInfo });
   }
+
+  handleReset = () => {
+    this.setState({ hasError: false, error: null, errorInfo: null });
+    if (this.props.onReset) {
+      this.props.onReset();
+    }
+  };
 
   render() {
     if (this.state.hasError) {
@@ -56,24 +66,40 @@ export default class ErrorBoundary extends Component<
           <p style={{ marginBottom: '1.5rem', color: '#666' }}>
             {this.state.error?.message || 'An unexpected error occurred'}
           </p>
-          <button
-            type="button"
-            onClick={() => {
-              this.setState({ hasError: false, error: null });
-              window.location.reload();
-            }}
-            style={{
-              padding: '0.75rem 1.5rem',
-              backgroundColor: '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '1rem',
-            }}
-          >
-            Reload Page
-          </button>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              type="button"
+              onClick={this.handleReset}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '1rem',
+              }}
+            >
+              Try Again
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                window.location.reload();
+              }}
+              style={{
+                padding: '0.75rem 1.5rem',
+                backgroundColor: 'transparent',
+                color: '#667eea',
+                border: '2px solid #667eea',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '1rem',
+              }}
+            >
+              Reload Page
+            </button>
+          </div>
         </div>
       );
     }

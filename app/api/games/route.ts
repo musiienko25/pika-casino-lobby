@@ -1,19 +1,60 @@
 /**
  * Next.js API Route for fetching games
  * This route acts as a proxy to avoid CORS issues
+ * Includes rate limiting and caching
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { cache, rateLimiter } from '@/utils/cache';
 
 const API_BASE_URL = 'https://casino.api.pikakasino.com/v1/pika';
+const CACHE_TTL = 60000; // 1 minute cache
+const RATE_LIMIT_REQUESTS = 100; // 100 requests per minute
 
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting - use IP address or a default key
+    const clientId = request.headers.get('x-forwarded-for') || 
+                     request.headers.get('x-real-ip') || 
+                     'unknown';
+    
+    if (!rateLimiter.isAllowed(clientId)) {
+      return NextResponse.json(
+        { 
+          error: 'Too many requests',
+          message: 'Rate limit exceeded. Please try again later.',
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': '60',
+            'X-RateLimit-Limit': String(RATE_LIMIT_REQUESTS),
+            'X-RateLimit-Remaining': String(rateLimiter.getRemaining(clientId)),
+          },
+        }
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get('category');
     const search = searchParams.get('search');
     const pageNumber = searchParams.get('pageNumber');
     const pageSize = searchParams.get('pageSize');
+
+    // Create cache key from request parameters
+    const cacheKey = `games:${category || 'all'}:${search || ''}:${pageNumber || '1'}:${pageSize || '10'}`;
+
+    // Check cache first
+    const cachedData = cache.get<unknown>(cacheKey);
+    if (cachedData) {
+      return NextResponse.json(cachedData, {
+        headers: {
+          'X-Cache': 'HIT',
+          'X-RateLimit-Limit': String(RATE_LIMIT_REQUESTS),
+          'X-RateLimit-Remaining': String(rateLimiter.getRemaining(clientId)),
+        },
+      });
+    }
 
     // Build URL
     let url: string;
@@ -56,12 +97,28 @@ export async function GET(request: NextRequest) {
     if (!response.ok) {
       return NextResponse.json(
         { error: `Failed to fetch games: ${response.statusText}` },
-        { status: response.status }
+        { 
+          status: response.status,
+          headers: {
+            'X-RateLimit-Limit': String(RATE_LIMIT_REQUESTS),
+            'X-RateLimit-Remaining': String(rateLimiter.getRemaining(clientId)),
+          },
+        }
       );
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    
+    // Cache the response
+    cache.set(cacheKey, data, CACHE_TTL);
+
+    return NextResponse.json(data, {
+      headers: {
+        'X-Cache': 'MISS',
+        'X-RateLimit-Limit': String(RATE_LIMIT_REQUESTS),
+        'X-RateLimit-Remaining': String(rateLimiter.getRemaining(clientId)),
+      },
+    });
   } catch (error) {
     console.error('API route error:', error);
     return NextResponse.json(

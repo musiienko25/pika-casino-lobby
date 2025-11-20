@@ -8,6 +8,7 @@
 import { memo } from 'react';
 import Image from 'next/image';
 import type { GameTile as GameTileType } from '@/types';
+import { GAME_THUMBNAIL_BLUR } from '@/utils/blur';
 import styles from './GamesList.module.scss';
 
 interface GameTileProps {
@@ -37,6 +38,8 @@ function GameTile({ game, index = 0 }: GameTileProps) {
             className={styles.thumbnailImage}
             loading={shouldLoadEagerly ? 'eager' : 'lazy'}
             priority={shouldHavePriority}
+            placeholder="blur"
+            blurDataURL={GAME_THUMBNAIL_BLUR}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               if (target.parentElement) {

@@ -200,7 +200,7 @@ export async function fetchCategoryGames(
     const data = await response.json();
 
     // Handle different response structures
-    let games: GameTile[] = [];
+    let games: unknown[] = [];
     
     if (Array.isArray(data)) {
       // If response is directly an array
@@ -214,18 +214,19 @@ export async function fetchCategoryGames(
     }
 
     // Map games to our GameTile format
-    const mappedGames: GameTile[] = games.map((game: Record<string, unknown>) => {
+    const mappedGames: GameTile[] = games.map((game: unknown) => {
+      const gameRecord = game as Record<string, unknown>;
       // Handle different field names from API
       const gameId = String(
-        game.id || 
-        game.platformId || 
-        game.slug || 
+        gameRecord.id || 
+        gameRecord.platformId || 
+        gameRecord.slug || 
         Math.random()
       );
       const gameName = String(
-        game.name || 
-        game.gameText || 
-        game.title || 
+        gameRecord.name || 
+        gameRecord.gameText || 
+        gameRecord.title || 
         'Unknown Game'
       );
       
@@ -233,11 +234,11 @@ export async function fetchCategoryGames(
       let gameThumbnail = '';
       
       // First, try thumbnail field
-      if (typeof game.thumbnail === 'string' && game.thumbnail) {
-        gameThumbnail = game.thumbnail;
-      } else if (game.thumbnail && typeof game.thumbnail === 'object') {
+      if (typeof gameRecord.thumbnail === 'string' && gameRecord.thumbnail) {
+        gameThumbnail = gameRecord.thumbnail;
+      } else if (gameRecord.thumbnail && typeof gameRecord.thumbnail === 'object') {
         // Handle thumbnail as object
-        const thumbObj = game.thumbnail as Record<string, unknown>;
+        const thumbObj = gameRecord.thumbnail as Record<string, unknown>;
         gameThumbnail = String(
           thumbObj.url || 
           thumbObj.original || 
@@ -249,10 +250,10 @@ export async function fetchCategoryGames(
       
       // If thumbnail is empty, try image field
       if (!gameThumbnail) {
-        if (typeof game.image === 'string') {
-          gameThumbnail = game.image;
-        } else if (game.image && typeof game.image === 'object') {
-          const imageObj = game.image as Record<string, unknown>;
+        if (typeof gameRecord.image === 'string') {
+          gameThumbnail = gameRecord.image;
+        } else if (gameRecord.image && typeof gameRecord.image === 'object') {
+          const imageObj = gameRecord.image as Record<string, unknown>;
           // Try to get URL from nested image object
           const original = imageObj.original;
           const small = imageObj.small;
@@ -289,8 +290,8 @@ export async function fetchCategoryGames(
       }
       
       // If still empty, try providerLogo.original.src as fallback
-      if (!gameThumbnail && game.providerLogo && typeof game.providerLogo === 'object') {
-        const providerLogo = game.providerLogo as Record<string, unknown>;
+      if (!gameThumbnail && gameRecord.providerLogo && typeof gameRecord.providerLogo === 'object') {
+        const providerLogo = gameRecord.providerLogo as Record<string, unknown>;
         if (providerLogo.original && typeof providerLogo.original === 'object') {
           const original = providerLogo.original as Record<string, unknown>;
           gameThumbnail = String(original.src || original.url || '');
@@ -304,13 +305,13 @@ export async function fetchCategoryGames(
         gameThumbnail = '';
       }
       
-      const gameProvider = typeof game.provider === 'string' 
-        ? game.provider 
-        : (typeof game.providerName === 'string' ? game.providerName : undefined);
+      const gameProvider = typeof gameRecord.provider === 'string' 
+        ? gameRecord.provider 
+        : (typeof gameRecord.providerName === 'string' ? gameRecord.providerName : undefined);
 
       // Create a clean game object without image/thumbnail to avoid overwriting
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { image: _image, thumbnail: _thumbnail, ...restGame } = game;
+      const { image: _image, thumbnail: _thumbnail, ...restGame } = gameRecord;
 
       return {
         id: gameId,

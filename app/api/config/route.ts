@@ -1,14 +1,53 @@
 /**
  * Next.js API Route for fetching config
  * This route acts as a proxy to avoid CORS issues
+ * Includes rate limiting and caching
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { cache, rateLimiter } from '@/utils/cache';
 
 const API_BASE_URL = 'https://casino.api.pikakasino.com/v1/pika';
+const CACHE_TTL = 3600000; // 1 hour cache (config changes rarely)
+const RATE_LIMIT_REQUESTS = 100; // 100 requests per minute
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientId = request.headers.get('x-forwarded-for') || 
+                     request.headers.get('x-real-ip') || 
+                     'unknown';
+    
+    if (!rateLimiter.isAllowed(clientId)) {
+      return NextResponse.json(
+        { 
+          error: 'Too many requests',
+          message: 'Rate limit exceeded. Please try again later.',
+        },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': '60',
+            'X-RateLimit-Limit': String(RATE_LIMIT_REQUESTS),
+            'X-RateLimit-Remaining': String(rateLimiter.getRemaining(clientId)),
+          },
+        }
+      );
+    }
+
+    // Check cache first
+    const cacheKey = 'config:en';
+    const cachedData = cache.get<unknown>(cacheKey);
+    if (cachedData) {
+      return NextResponse.json(cachedData, {
+        headers: {
+          'X-Cache': 'HIT',
+          'X-RateLimit-Limit': String(RATE_LIMIT_REQUESTS),
+          'X-RateLimit-Remaining': String(rateLimiter.getRemaining(clientId)),
+        },
+      });
+    }
+
     const url = `${API_BASE_URL}/en/config`;
 
     const response = await fetch(url, {
@@ -22,12 +61,28 @@ export async function GET() {
     if (!response.ok) {
       return NextResponse.json(
         { error: `Failed to fetch config: ${response.statusText}` },
-        { status: response.status }
+        { 
+          status: response.status,
+          headers: {
+            'X-RateLimit-Limit': String(RATE_LIMIT_REQUESTS),
+            'X-RateLimit-Remaining': String(rateLimiter.getRemaining(clientId)),
+          },
+        }
       );
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    
+    // Cache the response
+    cache.set(cacheKey, data, CACHE_TTL);
+
+    return NextResponse.json(data, {
+      headers: {
+        'X-Cache': 'MISS',
+        'X-RateLimit-Limit': String(RATE_LIMIT_REQUESTS),
+        'X-RateLimit-Remaining': String(rateLimiter.getRemaining(clientId)),
+      },
+    });
   } catch (error) {
     console.error('API route error:', error);
     return NextResponse.json(

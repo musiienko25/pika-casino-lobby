@@ -1,7 +1,7 @@
 /**
  * Redux store factory for SSR
  * Creates a new store instance for each request
- * Using plain Redux (not Redux Toolkit)
+ * Using plain Redux
  */
 
 import { createStore, combineReducers, applyMiddleware, type Store, type AnyAction } from 'redux';

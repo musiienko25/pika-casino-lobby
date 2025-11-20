@@ -1,6 +1,6 @@
 /**
  * Redux slice for managing games state
- * Using plain Redux (not Redux Toolkit)
+ * Using plain Redux
  */
 
 import type { ThunkAction, ThunkDispatch } from 'redux-thunk';

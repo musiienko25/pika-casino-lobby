@@ -1,6 +1,6 @@
 # Pika Casino Games Lobby
 
-A modern, responsive games lobby interface built with Next.js 16, React 18, TypeScript, Redux Toolkit, and SASS.
+A modern, responsive games lobby interface built with Next.js 16, React 18, TypeScript, Redux, and SASS.
 
 ## Features
 
@@ -10,14 +10,14 @@ A modern, responsive games lobby interface built with Next.js 16, React 18, Type
 - ⚡ **Server-Side Rendering (SSR)** - Initial data fetched on the server
 - 🎨 **Modern UI** - Beautiful gradient design with smooth animations
 - 🧪 **Unit Tests** - Comprehensive test coverage for services and components
-- 📦 **Redux State Management** - Centralized state with Redux Toolkit
+- 📦 **Redux State Management** - Centralized state with Redux and redux-thunk
 
 ## Tech Stack
 
 - **Framework**: Next.js 16 (App Router)
 - **UI Library**: React 18
 - **Language**: TypeScript
-- **State Management**: Redux Toolkit
+- **State Management**: Redux with redux-thunk
 - **Styling**: SASS (SCSS Modules)
 - **Testing**: Jest + React Testing Library
 - **API**: REST API integration
@@ -115,9 +115,10 @@ The main page (`app/page.tsx`) fetches categories on the server side, providing:
 
 ### State Management
 
-Redux Toolkit is used for:
+Redux with redux-thunk is used for:
 - Categories state (list, selected category, loading, errors)
 - Games state (list, search query, pagination, loading, errors)
+- Async actions handled with redux-thunk middleware
 
 ### Responsive Design
 

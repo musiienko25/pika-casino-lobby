@@ -11,7 +11,7 @@
 
 .gamesGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 1.5rem;
   max-width: 1400px;
   margin: 0 auto;
@@ -36,7 +36,7 @@
 .gameThumbnail {
   position: relative;
   width: 100%;
-  padding-top: 56.25%; // 16:9 aspect ratio
+  padding-top: 100%; // Very tall aspect ratio for highly elongated cards
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   overflow: hidden;
 }
@@ -231,7 +231,7 @@
 // Responsive design
 @media (max-width: 1200px) {
   .gamesGrid {
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 1.25rem;
   }
 }
@@ -242,7 +242,7 @@
   }
 
   .gamesGrid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 1rem;
   }
 

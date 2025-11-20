@@ -22,7 +22,7 @@ const initialState: GamesState = {
   error: null,
   searchQuery: '',
   pageNumber: 1,
-  pageSize: 60, // Start with 60 games
+  pageSize: 10, // Initial page size - will be set in component on first load
   totalCount: 0,
 };
 
@@ -73,8 +73,8 @@ const gamesSlice = createSlice({
     setSearchQuery: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload;
       state.pageNumber = 1; // Reset to first page when searching
-      state.pageSize = 60; // Reset to initial pageSize
       state.items = []; // Clear items on new search
+      // pageSize will be set in component when fetching
     },
     /**
      * Set page number

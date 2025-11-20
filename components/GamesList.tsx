@@ -8,7 +8,7 @@
 import { useEffect } from 'react';
 import Image from 'next/image';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchGamesByCategory, increasePageSize, setPageSize } from '@/store/slices/gamesSlice';
+import { fetchGamesByCategory, increasePageSize } from '@/store/slices/gamesSlice';
 import styles from './GamesList.module.scss';
 
 export default function GamesList() {
@@ -40,16 +40,15 @@ export default function GamesList() {
   // Fetch games only when category or search changes (initial load)
   useEffect(() => {
     if (selectedCategory?.getPage) {
-      // Reset pageSize to 60 when category/search changes
-      dispatch(setPageSize(60));
-      // Fetch initial games
+      // Fetch initial games with pageSize 10
+      // pageSize will be updated in Redux slice from the request params
       dispatch(
         fetchGamesByCategory({
           getPageUrl: selectedCategory.getPage,
           params: {
             search: searchQuery || undefined,
             pageNumber: 1,
-            pageSize: 60, // Always start with 60
+            pageSize: 10, // Initial load - 10 games
           },
         })
       );
@@ -160,7 +159,7 @@ export default function GamesList() {
             className={styles.loadMoreButton}
             disabled={loading}
           >
-            Load More Games (+20)
+            Load More Games (+10)
           </button>
           <p className={styles.loadMoreInfo}>
             Showing {items.length} of {totalCount} games

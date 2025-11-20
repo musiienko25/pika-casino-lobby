@@ -302,7 +302,7 @@ export async function fetchCategoryGames(
 
     // Extract pagination info
     const totalCount = data.totalCount || data.total || data.count || mappedGames.length;
-    const requestedPageSize = params.pageSize || 40;
+    const requestedPageSize = params.pageSize || 10;
     const responsePageNumber = params.pageNumber || 1;
     
     // If API returned more games than requested, limit to requested amount

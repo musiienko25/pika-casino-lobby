@@ -6,9 +6,10 @@
 import type { ThunkAction, ThunkDispatch } from 'redux-thunk';
 import { fetchGamesTiles, fetchCategoryGames } from '@/services/api';
 import type { GameTile, GamesTilesParams } from '@/types';
+import { INITIAL_PAGE_SIZE } from '@/constants';
 
-// Forward declaration for RootState (will be defined in store.ts)
-type RootState = { games: GamesState; categories: unknown };
+// Import RootState from store
+import type { RootState } from '../store';
 
 // Action Types
 export const GAMES_ACTION_TYPES = {
@@ -202,17 +203,43 @@ export const fetchGamesByCategory = (
   return async (dispatch: ThunkDispatch<RootState, unknown, GamesAction>, getState) => {
     dispatch({ type: GAMES_ACTION_TYPES.FETCH_GAMES_BY_CATEGORY_PENDING } as GamesAction);
     try {
-      const response = await fetchCategoryGames(getPageUrl, params || {});
-      const currentState = getState().games;
-      const requestedPageSize = params?.pageSize || currentState.pageSize;
+      const state = getState();
+      const selectedCategory = state.categories.selectedCategory;
+      
+      // Fetch games for the category with pagination
+      // Use pageSize and pageNumber from params or state
+      const currentState = state.games;
+      const fetchParams = {
+        pageNumber: params?.pageNumber || currentState.pageNumber || 1,
+        pageSize: params?.pageSize || currentState.pageSize || INITIAL_PAGE_SIZE,
+        search: params?.search || currentState.searchQuery || undefined,
+      };
+      
+      const response = await fetchCategoryGames(getPageUrl, fetchParams);
+      const requestedPageSize = fetchParams.pageSize;
+      
+      // Add category to each game (API doesn't return category field)
+      const gamesWithCategory = response.games.map((game) => {
+        if (selectedCategory) {
+          return {
+            ...game,
+            category: {
+              id: selectedCategory.id,
+              name: selectedCategory.name,
+              slug: selectedCategory.getPage ? selectedCategory.getPage.replace(/^\//, '').replace(/\/$/, '') : undefined,
+            },
+          };
+        }
+        return game;
+      });
       
       dispatch({
         type: GAMES_ACTION_TYPES.FETCH_GAMES_BY_CATEGORY_FULFILLED,
         payload: {
-          games: [...(response.games || [])], // Convert readonly to mutable
+          games: [...gamesWithCategory], // Convert readonly to mutable, with category added
           totalCount: response.totalCount || 0,
-          pageNumber: response.pageNumber || currentState.pageNumber,
-          pageSize: response.pageSize || currentState.pageSize,
+          pageNumber: response.pageNumber || fetchParams.pageNumber,
+          pageSize: response.pageSize || requestedPageSize,
           requestedPageSize,
         },
       } as FetchGamesByCategoryFulfilledAction);
@@ -312,30 +339,18 @@ export default function gamesReducer(
         ...state,
         loading: true,
         error: null,
+        // Don't clear items - keep them visible while loading new page
       };
     
     case GAMES_ACTION_TYPES.FETCH_GAMES_BY_CATEGORY_FULFILLED: {
       const typedAction = action as FetchGamesByCategoryFulfilledAction;
       const newGames = typedAction.payload.games || [];
-      const isIncreasingPageSize = typedAction.payload.requestedPageSize > state.pageSize;
       
-      let updatedItems: GameTile[];
-      if (isIncreasingPageSize) {
-        // Append new games, avoiding duplicates
-        const existingIds = new Set(state.items.map((game) => game.id));
-        const uniqueNewGames = newGames.filter(
-          (game: GameTile) => !existingIds.has(game.id)
-        );
-        updatedItems = [...state.items, ...uniqueNewGames];
-      } else {
-        // Replace items (new category/search or first load)
-        updatedItems = [...newGames];
-      }
-      
+      // Always replace items with new page (server-side pagination)
       return {
         ...state,
         loading: false,
-        items: updatedItems,
+        items: [...newGames],
         totalCount: typedAction.payload.totalCount || 0,
         pageNumber: typedAction.payload.pageNumber || state.pageNumber,
         pageSize: typedAction.payload.requestedPageSize,

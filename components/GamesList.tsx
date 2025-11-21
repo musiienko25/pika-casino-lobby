@@ -5,27 +5,29 @@
 
 'use client';
 
-import { useEffect, useState, useCallback, memo } from 'react';
+import { useEffect, useState, memo, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchGamesByCategory, increasePageSize } from '@/store/slices/gamesSlice';
+import { fetchGamesByCategory, setPageNumber } from '@/store/slices/gamesSlice';
 import {
   selectGamesWithPagination,
   selectGamesLoading,
   selectGamesError,
   selectSearchQuery,
+  selectPageNumber,
   selectCategoriesWithSelection,
 } from '@/store/selectors';
-import { analytics } from '@/utils/analytics';
-import { INITIAL_PAGE_SIZE, LOAD_MORE_INCREMENT, INITIAL_LOADER_MIN_TIME } from '@/constants';
+import { INITIAL_PAGE_SIZE, INITIAL_LOADER_MIN_TIME } from '@/constants';
 import GameTile from './GameTile';
 import SkeletonLoader from './SkeletonLoader';
+import Pagination from './Pagination';
 import styles from './GamesList.module.scss';
 
 function GamesList() {
   const dispatch = useAppDispatch();
   
   // Use memoized selectors
-  const { games: items, totalCount, pageSize, pageNumber } = useAppSelector(selectGamesWithPagination);
+  const { games: items, pageSize } = useAppSelector(selectGamesWithPagination);
+  const pageNumber = useAppSelector(selectPageNumber);
   const loading = useAppSelector(selectGamesLoading);
   const error = useAppSelector(selectGamesError);
   const searchQuery = useAppSelector(selectSearchQuery);
@@ -42,41 +44,49 @@ function GamesList() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle Load More - increase pageSize by LOAD_MORE_INCREMENT
-  const handleLoadMore = useCallback(() => {
-    if (!loading && selectedCategory?.getPage) {
-      const newPageSize = pageSize + LOAD_MORE_INCREMENT;
-      
-      // Track load more event
-      if (analytics) {
-        analytics.trackLoadMore(items.length, newPageSize);
-      }
-      
-      dispatch(increasePageSize(LOAD_MORE_INCREMENT));
-      dispatch(
-        fetchGamesByCategory(selectedCategory.getPage, {
-          search: searchQuery || undefined,
-          pageNumber: 1, // Always page 1 when increasing pageSize
-          pageSize: newPageSize,
-        })
-      );
-    }
-  }, [loading, selectedCategory, pageSize, searchQuery, dispatch, items.length]);
-
-  // Fetch games only when category or search changes (initial load)
+  // Track previous category and search to reset pageNumber when they change
+  const prevCategoryIdRef = useRef<string | undefined>(selectedCategory?.id);
+  const prevSearchQueryRef = useRef<string | undefined>(searchQuery);
+  
+  // Reset pageNumber to 1 when category or search changes
   useEffect(() => {
-    if (selectedCategory?.getPage) {
-      // Fetch initial games with pageSize 10
-      // pageSize will be updated in Redux slice from the request params
+    const categoryChanged = selectedCategory?.id !== prevCategoryIdRef.current;
+    const searchChanged = searchQuery !== prevSearchQueryRef.current;
+    
+    if (categoryChanged || searchChanged) {
+      prevCategoryIdRef.current = selectedCategory?.id;
+      prevSearchQueryRef.current = searchQuery;
+      if (pageNumber !== 1) {
+        dispatch(setPageNumber(1));
+      }
+    }
+  }, [selectedCategory?.id, searchQuery, dispatch, pageNumber]);
+
+  // Fetch games when category, search, or pageNumber changes
+  // Use a ref to track the last fetch to avoid duplicate requests
+  const lastFetchRef = useRef<string>('');
+  
+  useEffect(() => {
+    if (!selectedCategory?.getPage || loading) {
+      return;
+    }
+    
+    // Create a unique key for this fetch request
+    const fetchKey = `${selectedCategory.getPage}-${searchQuery || ''}-${pageNumber}-${pageSize}`;
+    
+    // Only fetch if this is a new request
+    if (lastFetchRef.current !== fetchKey) {
+      lastFetchRef.current = fetchKey;
+      
       dispatch(
         fetchGamesByCategory(selectedCategory.getPage, {
           search: searchQuery || undefined,
-          pageNumber: 1,
-          pageSize: INITIAL_PAGE_SIZE,
+          pageNumber,
+          pageSize,
         })
       );
     }
-  }, [dispatch, selectedCategory, searchQuery]); // Only trigger on category/search change
+  }, [dispatch, selectedCategory?.getPage, searchQuery, pageNumber, pageSize, loading]);
 
   // Show skeleton loader if loading or during first second
   if ((loading || showInitialLoader) && items.length === 0) {
@@ -138,37 +148,8 @@ function GamesList() {
         ))}
       </div>
       
-      {/* Load More Button */}
-            {!loading && items.length < totalCount && totalCount > 0 && (
-              <div className={styles.loadMoreContainer}>
-                <button
-                  type="button"
-                  onClick={handleLoadMore}
-                  className={styles.loadMoreButton}
-                  disabled={loading}
-                  aria-label={`Load ${LOAD_MORE_INCREMENT} more games`}
-                >
-                  Load More Games (+{LOAD_MORE_INCREMENT})
-                </button>
-          <p className={styles.loadMoreInfo}>
-            Showing {items.length} of {totalCount} games
-          </p>
-        </div>
-      )}
-      
-            {loading && items.length > 0 && (
-              <div className={styles.skeletonContainer}>
-                <div className={styles.gamesGrid}>
-                  <SkeletonLoader count={LOAD_MORE_INCREMENT} />
-                </div>
-              </div>
-            )}
-      
-      {!loading && items.length >= totalCount && items.length > 0 && totalCount > 0 && (
-        <div className={styles.endOfList}>
-          <p>All games loaded ({items.length} of {totalCount})</p>
-        </div>
-      )}
+      {/* Pagination */}
+      <Pagination />
     </div>
   );
 }

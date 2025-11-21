@@ -26,7 +26,7 @@ function GamesList() {
   const dispatch = useAppDispatch();
   
   // Use memoized selectors
-  const { games: items, pageSize } = useAppSelector(selectGamesWithPagination);
+  const { games: items } = useAppSelector(selectGamesWithPagination);
   const pageNumber = useAppSelector(selectPageNumber);
   const loading = useAppSelector(selectGamesLoading);
   const error = useAppSelector(selectGamesError);
@@ -63,7 +63,7 @@ function GamesList() {
   }, [selectedCategory?.id, searchQuery, dispatch, pageNumber]);
 
   // Fetch games when category, search, or pageNumber changes
-  // Use a ref to track the last fetch to avoid duplicate requests
+  // Use getPage from selectedCategory to fetch games for that specific category
   const lastFetchRef = useRef<string>('');
   
   useEffect(() => {
@@ -72,21 +72,23 @@ function GamesList() {
     }
     
     // Create a unique key for this fetch request
-    const fetchKey = `${selectedCategory.getPage}-${searchQuery || ''}-${pageNumber}-${pageSize}`;
+    const fetchKey = `${selectedCategory.getPage}-${searchQuery || ''}-${pageNumber}`;
     
     // Only fetch if this is a new request
     if (lastFetchRef.current !== fetchKey) {
       lastFetchRef.current = fetchKey;
       
+      // Fetch games for the selected category using its getPage URL
+      // API will filter games by category on the server side
       dispatch(
         fetchGamesByCategory(selectedCategory.getPage, {
           search: searchQuery || undefined,
           pageNumber,
-          pageSize,
+          pageSize: INITIAL_PAGE_SIZE,
         })
       );
     }
-  }, [dispatch, selectedCategory?.getPage, searchQuery, pageNumber, pageSize, loading]);
+  }, [dispatch, selectedCategory?.getPage, searchQuery, pageNumber, loading]);
 
   // Show skeleton loader if loading or during first second
   if ((loading || showInitialLoader) && items.length === 0) {
@@ -104,22 +106,22 @@ function GamesList() {
       <div className={styles.gamesList}>
         <div className={styles.error}>
           <p>Error loading games: {error}</p>
-          <button
-            type="button"
-            onClick={() => {
-              if (selectedCategory?.getPage) {
-                dispatch(
-                  fetchGamesByCategory(selectedCategory.getPage, {
-                    search: searchQuery || undefined,
-                    pageNumber,
-                    pageSize,
-                  })
-                );
-              }
-            }}
-          >
-            Retry
-          </button>
+           <button
+             type="button"
+             onClick={() => {
+               if (selectedCategory?.getPage) {
+                 dispatch(
+                   fetchGamesByCategory(selectedCategory.getPage, {
+                     search: searchQuery || undefined,
+                     pageNumber,
+                     pageSize: INITIAL_PAGE_SIZE,
+                   })
+                 );
+               }
+             }}
+           >
+             Retry
+           </button>
         </div>
       </div>
     );

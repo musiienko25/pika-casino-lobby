@@ -65,11 +65,36 @@ export async function fetchConfig(): Promise<Category[]> {
             getPage?: string;
             url?: string;
             path?: string;
+            links?: {
+              getPage?: string;
+              getPageMetadata?: string;
+            };
           };
+          
+          // Extract getPage from links.getPage or use path
+          // links.getPage contains full URL like "https://casino.api.pikakasino.com/v1/pika/pages/en/casino"
+          // We need to extract the path part: "/pages/en/casino" or just "/casino"
+          let getPage = menuItem.getPage || menuItem.url || menuItem.path || '';
+          
+          if (!getPage && menuItem.links?.getPage) {
+            // Extract path from full URL
+            try {
+              const urlObj = new URL(menuItem.links.getPage);
+              getPage = urlObj.pathname; // e.g., "/pages/en/casino"
+              // Remove "/pages/en" prefix to get category path
+              if (getPage.startsWith('/pages/en')) {
+                getPage = getPage.replace('/pages/en', '');
+              }
+            } catch {
+              // If URL parsing fails, use path if available
+              getPage = menuItem.path || '';
+            }
+          }
+          
           return {
             id: menuItem.id || menuItem.slug || String(Math.random()),
             name: menuItem.title || menuItem.name || menuItem.label || 'Unnamed Category',
-            getPage: menuItem.getPage || menuItem.url || menuItem.path || '',
+            getPage: getPage || menuItem.path || '',
           };
         })
         .filter((cat: Category) => cat.getPage); // Filter out items without getPage
@@ -156,19 +181,25 @@ export async function fetchCategoryGames(
     // The API route will handle the actual fetch to the external API
     const searchParams = new URLSearchParams();
     
-    // Extract category slug from getPageUrl
-    // getPageUrl might be like "/casino" or "casino" or a full URL
-    let categorySlug = getPageUrl;
+    // Extract category path from getPageUrl
+    // getPageUrl might be like "/casino", "/pages/en/casino", or full URL
+    let categoryPath = getPageUrl;
     if (getPageUrl.startsWith('http://') || getPageUrl.startsWith('https://')) {
-      // Extract slug from full URL
+      // Extract path from full URL (e.g., "https://.../pages/en/casino" -> "/pages/en/casino")
       const urlObj = new URL(getPageUrl);
-      categorySlug = urlObj.pathname.replace(/^\/en\//, '').replace(/^\//, '');
-    } else if (getPageUrl.startsWith('/')) {
-      categorySlug = getPageUrl.slice(1); // Remove leading slash
+      categoryPath = urlObj.pathname;
+    } else if (!getPageUrl.startsWith('/')) {
+      categoryPath = `/${getPageUrl}`;
+    }
+    
+    // If path doesn't start with /pages/en, add it (for /pages/en/casino/new-games structure)
+    if (!categoryPath.startsWith('/pages/en') && !categoryPath.startsWith('/en/games/tiles')) {
+      // If it's just "/casino" or "/casino/new-games", convert to "/pages/en/casino" or "/pages/en/casino/new-games"
+      categoryPath = `/pages/en${categoryPath}`;
     }
     
     // Use our Next.js API route as proxy
-    searchParams.append('category', categorySlug);
+    searchParams.append('category', categoryPath);
     
     if (params.search) {
       searchParams.append('search', params.search);
@@ -206,6 +237,7 @@ export async function fetchCategoryGames(
 
     // Handle different response structures
     let games: unknown[] = [];
+    let extractedTotalCount: number | undefined;
     
     if (Array.isArray(data)) {
       // If response is directly an array
@@ -216,6 +248,21 @@ export async function fetchCategoryGames(
       games = data.items;
     } else if (Array.isArray(data.data)) {
       games = data.data;
+    } else if (data.components && Array.isArray(data.components)) {
+      // Handle /pages/en/casino/new-games structure
+      // Find component with type "game-list" that has games array
+      const gameListComponent = data.components.find(
+        (comp: unknown) => {
+          const c = comp as Record<string, unknown>;
+          return (c.type === 'game-list' || c.type === 'games-tiles') && Array.isArray(c.games);
+        }
+      );
+      
+      if (gameListComponent) {
+        const component = gameListComponent as Record<string, unknown>;
+        games = (component.games as unknown[]) || [];
+        extractedTotalCount = typeof component.total === 'number' ? component.total : undefined;
+      }
     }
 
     // Map games to our GameTile format
@@ -331,23 +378,18 @@ export async function fetchCategoryGames(
     });
 
     // Extract pagination info
-    const totalCount = data.totalCount || data.total || data.count || mappedGames.length;
+    const totalCount = extractedTotalCount || data.totalCount || data.total || data.count || mappedGames.length;
     const requestedPageSize = params.pageSize || 10;
     const responsePageNumber = params.pageNumber || 1;
     
     // If API returned more games than requested, limit to requested amount
-    // This handles the case where API returns all games regardless of pageSize
-    let resultGames = mappedGames;
-    if (mappedGames.length > requestedPageSize) {
-      // API returned all games, limit to requested pageSize
-      resultGames = mappedGames.slice(0, requestedPageSize);
-    }
-
+    // Return all games - we'll filter and paginate on the client side
+    // Don't limit here, let the client handle pagination
     const result: GamesTilesResponse = {
-      games: resultGames,
+      games: mappedGames, // Return all games, no limit
       totalCount: totalCount || mappedGames.length, // Use total from API or all games count
       pageNumber: responsePageNumber,
-      pageSize: requestedPageSize,
+      pageSize: requestedPageSize, // Keep requestedPageSize for reference, but return all games
     };
 
     return result;

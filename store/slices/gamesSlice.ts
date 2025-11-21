@@ -6,7 +6,6 @@
 import type { ThunkAction, ThunkDispatch } from 'redux-thunk';
 import { fetchGamesTiles, fetchCategoryGames } from '@/services/api';
 import type { GameTile, GamesTilesParams } from '@/types';
-import { INITIAL_PAGE_SIZE } from '@/constants';
 
 // Import RootState from store
 import type { RootState } from '../store';
@@ -196,6 +195,8 @@ export const fetchGames = (
   };
 };
 
+// Fetch games for a specific category using the getPage URL
+// Server-side filtering: API filters games by category via getPage endpoint
 export const fetchGamesByCategory = (
   getPageUrl: string,
   params?: GamesTilesParams
@@ -204,43 +205,39 @@ export const fetchGamesByCategory = (
     dispatch({ type: GAMES_ACTION_TYPES.FETCH_GAMES_BY_CATEGORY_PENDING } as GamesAction);
     try {
       const state = getState();
-      const selectedCategory = state.categories.selectedCategory;
+      const currentState = state.games;
       
       // Fetch games for the category with pagination
       // Use pageSize and pageNumber from params or state
-      const currentState = state.games;
       const fetchParams = {
         pageNumber: params?.pageNumber || currentState.pageNumber || 1,
-        pageSize: params?.pageSize || currentState.pageSize || INITIAL_PAGE_SIZE,
+        pageSize: params?.pageSize || currentState.pageSize || 10,
         search: params?.search || currentState.searchQuery || undefined,
       };
       
-      const response = await fetchCategoryGames(getPageUrl, fetchParams);
-      const requestedPageSize = fetchParams.pageSize;
+      console.log('🏷️ [gamesSlice] Fetching games for category:', {
+        getPageUrl,
+        pageNumber: fetchParams.pageNumber,
+        pageSize: fetchParams.pageSize,
+        search: fetchParams.search,
+      });
       
-      // Add category to each game (API doesn't return category field)
-      const gamesWithCategory = response.games.map((game) => {
-        if (selectedCategory) {
-          return {
-            ...game,
-            category: {
-              id: selectedCategory.id,
-              name: selectedCategory.name,
-              slug: selectedCategory.getPage ? selectedCategory.getPage.replace(/^\//, '').replace(/\/$/, '') : undefined,
-            },
-          };
-        }
-        return game;
+      // Fetch games using getPage URL - API will filter by category on server
+      const response = await fetchCategoryGames(getPageUrl, fetchParams);
+      
+      console.log('🏷️ [gamesSlice] Received response:', {
+        gamesCount: response.games?.length || 0,
+        totalCount: response.totalCount,
       });
       
       dispatch({
         type: GAMES_ACTION_TYPES.FETCH_GAMES_BY_CATEGORY_FULFILLED,
         payload: {
-          games: [...gamesWithCategory], // Convert readonly to mutable, with category added
+          games: [...response.games], // Convert readonly to mutable
           totalCount: response.totalCount || 0,
           pageNumber: response.pageNumber || fetchParams.pageNumber,
-          pageSize: response.pageSize || requestedPageSize,
-          requestedPageSize,
+          pageSize: response.pageSize || fetchParams.pageSize,
+          requestedPageSize: fetchParams.pageSize,
         },
       } as FetchGamesByCategoryFulfilledAction);
     } catch (error) {
@@ -335,25 +332,29 @@ export default function gamesReducer(
     }
     
     case GAMES_ACTION_TYPES.FETCH_GAMES_BY_CATEGORY_PENDING:
+      // For client-side filtering: don't clear games if they're already loaded
+      // Only clear on initial load (when items are empty)
       return {
         ...state,
         loading: true,
         error: null,
-        // Don't clear items - keep them visible while loading new page
+        // Keep existing games during fetch for smoother UX
+        // Games will be replaced when FETCH_GAMES_BY_CATEGORY_FULFILLED is dispatched
       };
     
     case GAMES_ACTION_TYPES.FETCH_GAMES_BY_CATEGORY_FULFILLED: {
       const typedAction = action as FetchGamesByCategoryFulfilledAction;
       const newGames = typedAction.payload.games || [];
-      
-      // Always replace items with new page (server-side pagination)
+
+      // For client-side filtering: replace all games with new fetch
+      // This allows us to filter by category.name on the client
       return {
         ...state,
         loading: false,
-        items: [...newGames],
-        totalCount: typedAction.payload.totalCount || 0,
-        pageNumber: typedAction.payload.pageNumber || state.pageNumber,
-        pageSize: typedAction.payload.requestedPageSize,
+        items: [...newGames], // Store all games for client-side filtering
+        totalCount: typedAction.payload.totalCount || newGames.length,
+        pageNumber: 1, // Reset to page 1 after new fetch
+        pageSize: typedAction.payload.requestedPageSize || state.pageSize,
       };
     }
     

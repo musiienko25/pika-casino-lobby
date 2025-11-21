@@ -62,10 +62,10 @@ export async function GET(request: NextRequest) {
     let url: string;
     
     if (category) {
-      // If category is provided, use it as a path or parameter
-      // Check if it's a full path or just a slug
+      // If category is provided, use it as a path
+      // Category can be like "/casino", "/pages/en/casino", or "/pages/en/casino/new-games"
       if (category.startsWith('/')) {
-        // It's a path like "/casino" - construct full URL
+        // It's a path - construct full URL
         url = `${API_BASE_URL}${category}`;
       } else {
         // It's a slug - use /en/games/tiles with category parameter

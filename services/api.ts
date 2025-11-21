@@ -279,7 +279,42 @@ export async function fetchCategoryGames(
       if (gameListComponent) {
         const component = gameListComponent as Record<string, unknown>;
         games = (component.games as unknown[]) || [];
-        extractedTotalCount = typeof component.total === 'number' ? component.total : undefined;
+        
+        // component.total might be limited or incorrect
+        // Extract collection name from listParameters and fetch real total from /en/games/tiles
+        const listParams = component.listParameters as Record<string, unknown> | string[] | undefined;
+        let collections: string[] | undefined;
+        
+        // listParameters can be an array (e.g., ["new-games"]) or an object with collections field
+        if (Array.isArray(listParams)) {
+          collections = listParams;
+        } else if (listParams && typeof listParams === 'object') {
+          // listParameters.collections is an array like ["all-games"] or ["new-games"]
+          collections = (listParams as Record<string, unknown>).collections as string[] | undefined;
+        }
+        
+        if (collections && collections.length > 0) {
+          // Fetch real total from /en/games/tiles with gameCollections parameter
+          try {
+            const collectionName = collections[0]; // e.g., "new-games", "popular", "all-games"
+            const tilesUrl = `/api/games?category=/en/games/tiles&gameCollections=${collectionName}&pageNumber=1&pageSize=1`;
+            const tilesResponse = await fetch(tilesUrl);
+            if (tilesResponse.ok) {
+              const tilesData = await tilesResponse.json();
+              if (typeof tilesData.count === 'number') {
+                extractedTotalCount = tilesData.count;
+                console.log(`✅ [API] Fetched real total for collection "${collectionName}": ${extractedTotalCount}`);
+              }
+            }
+          } catch (error) {
+            // If fetch fails, use component.total as fallback
+            console.warn(`⚠️ [API] Failed to fetch real total, using component.total:`, error);
+            extractedTotalCount = typeof component.total === 'number' ? component.total : undefined;
+          }
+        } else {
+          // No collections, use component.total as fallback
+          extractedTotalCount = typeof component.total === 'number' ? component.total : undefined;
+        }
       }
     }
 

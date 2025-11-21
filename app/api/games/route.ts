@@ -42,9 +42,10 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const pageNumber = searchParams.get('pageNumber');
     const pageSize = searchParams.get('pageSize');
+    const gameCollections = searchParams.get('gameCollections');
 
-    // Create cache key from request parameters
-    const cacheKey = `games:${category || 'all'}:${search || ''}:${pageNumber || '1'}:${pageSize || '10'}`;
+    // Create cache key from request parameters (include gameCollections for proper caching)
+    const cacheKey = `games:${category || 'all'}:${gameCollections || ''}:${search || ''}:${pageNumber || '1'}:${pageSize || '10'}`;
 
     // Check cache first
     const cachedData = cache.get<unknown>(cacheKey);
@@ -80,6 +81,10 @@ export async function GET(request: NextRequest) {
     if (search) queryParams.append('search', search);
     if (pageNumber) queryParams.append('pageNumber', pageNumber);
     if (pageSize) queryParams.append('pageSize', pageSize);
+    // Add gameCollections parameter for /en/games/tiles endpoint
+    if (gameCollections) {
+      queryParams.append('gameCollections', gameCollections);
+    }
     // Only add category as query param if it's not a path
     if (category && !category.startsWith('/')) {
       queryParams.append('category', category);

@@ -73,22 +73,34 @@ export async function fetchConfig(): Promise<Category[]> {
           
           // Extract getPage from links.getPage or use path
           // links.getPage contains full URL like "https://casino.api.pikakasino.com/v1/pika/pages/en/casino"
-          // We need to extract the path part: "/pages/en/casino" or just "/casino"
+          // For "Lobby" category (path="/casino"), use /en/games/tiles instead
+          // For other categories, use /pages/en/casino/new-games structure
           let getPage = menuItem.getPage || menuItem.url || menuItem.path || '';
           
           if (!getPage && menuItem.links?.getPage) {
             // Extract path from full URL
             try {
               const urlObj = new URL(menuItem.links.getPage);
-              getPage = urlObj.pathname; // e.g., "/pages/en/casino"
-              // Remove "/pages/en" prefix to get category path
-              if (getPage.startsWith('/pages/en')) {
-                getPage = getPage.replace('/pages/en', '');
+              const fullPath = urlObj.pathname; // e.g., "/pages/en/casino"
+              
+              // Special case: if path is "/pages/en/casino" (Lobby), use /en/games/tiles
+              if (fullPath === '/pages/en/casino' || menuItem.path === '/casino') {
+                getPage = '/en/games/tiles';
+              } else if (fullPath.startsWith('/pages/en')) {
+                // For other categories, keep /pages/en/casino/new-games structure
+                getPage = fullPath;
+              } else {
+                getPage = fullPath;
               }
             } catch {
               // If URL parsing fails, use path if available
               getPage = menuItem.path || '';
             }
+          }
+          
+          // If still no getPage and we have path="/casino", use /en/games/tiles
+          if (!getPage && menuItem.path === '/casino') {
+            getPage = '/en/games/tiles';
           }
           
           return {
@@ -182,7 +194,7 @@ export async function fetchCategoryGames(
     const searchParams = new URLSearchParams();
     
     // Extract category path from getPageUrl
-    // getPageUrl might be like "/casino", "/pages/en/casino", or full URL
+    // getPageUrl might be like "/casino", "/pages/en/casino", "/en/games/tiles", or full URL
     let categoryPath = getPageUrl;
     if (getPageUrl.startsWith('http://') || getPageUrl.startsWith('https://')) {
       // Extract path from full URL (e.g., "https://.../pages/en/casino" -> "/pages/en/casino")
@@ -192,9 +204,15 @@ export async function fetchCategoryGames(
       categoryPath = `/${getPageUrl}`;
     }
     
-    // If path doesn't start with /pages/en, add it (for /pages/en/casino/new-games structure)
-    if (!categoryPath.startsWith('/pages/en') && !categoryPath.startsWith('/en/games/tiles')) {
-      // If it's just "/casino" or "/casino/new-games", convert to "/pages/en/casino" or "/pages/en/casino/new-games"
+    // Special handling for different endpoint types:
+    // - "/en/games/tiles" - use as-is (for Lobby/all games)
+    // - "/pages/en/casino/new-games" - use as-is (for specific categories)
+    // - "/casino" - convert to "/pages/en/casino" (but this doesn't work, so use /en/games/tiles)
+    if (categoryPath === '/casino' || categoryPath === '/pages/en/casino') {
+      // Lobby category - use /en/games/tiles endpoint
+      categoryPath = '/en/games/tiles';
+    } else if (!categoryPath.startsWith('/pages/en') && !categoryPath.startsWith('/en/games/tiles')) {
+      // Other categories - convert to /pages/en/casino/new-games structure
       categoryPath = `/pages/en${categoryPath}`;
     }
     

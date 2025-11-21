@@ -8,10 +8,28 @@
 }
 
 .header {
-  text-align: center;
-  padding: 3rem 1rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 1.5rem 2rem;
   background: white;
   border-bottom: 1px solid #e0e0e0;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.headerContent {
+  flex: 1;
+  text-align: center;
 }
 
 .title {
@@ -40,7 +58,12 @@
 // Responsive design
 @media (max-width: 768px) {
   .header {
-    padding: 2rem 1rem 1.5rem;
+    padding: 1.5rem 1rem;
+    gap: 1rem;
+  }
+
+  .logo {
+    font-size: 1.2rem;
   }
 
   .title {

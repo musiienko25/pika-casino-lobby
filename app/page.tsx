@@ -26,10 +26,13 @@ export default async function Home() {
   return (
     <div className={styles.lobby}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Pika Casino Games Lobby</h1>
-        <p className={styles.subtitle}>
-          Discover and play your favorite casino games
-        </p>
+        <div className={styles.logo}>Pikacasino</div>
+        <div className={styles.headerContent}>
+          <h1 className={styles.title}>Pika Casino Games Lobby</h1>
+          <p className={styles.subtitle}>
+            Discover and play your favorite casino games
+          </p>
+        </div>
       </header>
 
       <main className={styles.main}>

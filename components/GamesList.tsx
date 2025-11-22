@@ -144,10 +144,20 @@ function GamesList() {
 
   return (
     <div className={styles.gamesList}>
-      <div className={styles.gamesGrid}>
-        {items.map((game, index) => (
-          <GameTile key={game.id} game={game} index={index} />
-        ))}
+      <div className={styles.gamesGridContainer}>
+        <div className={styles.gamesGrid}>
+          {items.map((game, index) => (
+            <GameTile key={game.id} game={game} index={index} />
+          ))}
+        </div>
+        
+        {/* Show loading overlay when filtering by category */}
+        {loading && items.length > 0 && (
+          <div className={styles.loadingOverlay}>
+            <div className={styles.loadingSpinner}></div>
+            <p>Loading games...</p>
+          </div>
+        )}
       </div>
       
       {/* Pagination */}

@@ -303,12 +303,10 @@ export async function fetchCategoryGames(
               const tilesData = await tilesResponse.json();
               if (typeof tilesData.count === 'number') {
                 extractedTotalCount = tilesData.count;
-                console.log(`✅ [API] Fetched real total for collection "${collectionName}": ${extractedTotalCount}`);
               }
             }
           } catch (error) {
             // If fetch fails, use component.total as fallback
-            console.warn(`⚠️ [API] Failed to fetch real total, using component.total:`, error);
             extractedTotalCount = typeof component.total === 'number' ? component.total : undefined;
           }
         } else {

@@ -215,20 +215,8 @@ export const fetchGamesByCategory = (
         search: params?.search || currentState.searchQuery || undefined,
       };
       
-      console.log('🏷️ [gamesSlice] Fetching games for category:', {
-        getPageUrl,
-        pageNumber: fetchParams.pageNumber,
-        pageSize: fetchParams.pageSize,
-        search: fetchParams.search,
-      });
-      
       // Fetch games using getPage URL - API will filter by category on server
       const response = await fetchCategoryGames(getPageUrl, fetchParams);
-      
-      console.log('🏷️ [gamesSlice] Received response:', {
-        gamesCount: response.games?.length || 0,
-        totalCount: response.totalCount,
-      });
       
       dispatch({
         type: GAMES_ACTION_TYPES.FETCH_GAMES_BY_CATEGORY_FULFILLED,

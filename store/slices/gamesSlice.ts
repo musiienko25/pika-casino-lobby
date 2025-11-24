@@ -197,6 +197,7 @@ export const fetchGames = (
 
 // Fetch games for a specific category using the getPage URL
 // Server-side filtering: API filters games by category via getPage endpoint
+// Client-side filtering: When search is active, fetch more games to filter client-side
 export const fetchGamesByCategory = (
   getPageUrl: string,
   params?: GamesTilesParams
@@ -207,12 +208,32 @@ export const fetchGamesByCategory = (
       const state = getState();
       const currentState = state.games;
       
+      const searchQuery = params?.search || currentState.searchQuery || '';
+      const hasSearch = searchQuery.trim().length > 0;
+      
+      // Check if this endpoint supports search parameter
+      // Only /en/games/tiles endpoint supports search, other endpoints (/pages/en/casino/*) don't
+      const supportsSearch = getPageUrl.includes('/en/games/tiles') || 
+                             getPageUrl === '/casino' || 
+                             getPageUrl === '/pages/en/casino';
+      
+      const basePageSize = params?.pageSize || currentState.pageSize || 10;
+      
+      // When search is active:
+      // - If endpoint supports search: use normal page size and pass search to API
+      // - If endpoint doesn't support search: fetch more games (200) to filter client-side
+      //   This ensures we have enough games to search through
+      const fetchPageSize = (hasSearch && !supportsSearch) 
+        ? 200 
+        : basePageSize;
+      
       // Fetch games for the category with pagination
-      // Use pageSize and pageNumber from params or state
       const fetchParams = {
         pageNumber: params?.pageNumber || currentState.pageNumber || 1,
-        pageSize: params?.pageSize || currentState.pageSize || 10,
-        search: params?.search || currentState.searchQuery || undefined,
+        pageSize: fetchPageSize,
+        // Only pass search to API if endpoint supports it
+        // For other categories, we'll filter client-side using the selector
+        search: (hasSearch && supportsSearch) ? searchQuery : undefined,
       };
       
       // Fetch games using getPage URL - API will filter by category on server
@@ -225,7 +246,7 @@ export const fetchGamesByCategory = (
           totalCount: response.totalCount || 0,
           pageNumber: response.pageNumber || fetchParams.pageNumber,
           pageSize: response.pageSize || fetchParams.pageSize,
-          requestedPageSize: fetchParams.pageSize,
+          requestedPageSize: basePageSize, // Store the actual requested page size for pagination
         },
       } as FetchGamesByCategoryFulfilledAction);
     } catch (error) {

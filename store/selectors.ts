@@ -33,20 +33,39 @@ export const selectTotalCount = (state: RootState) => state.games.totalCount;
 
 // Memoized selector for games with pagination info
 // Server-side filtering: API filters by category via getPage URL
+// Client-side filtering: Filter by search query when API doesn't support it for certain categories
 // Server-side pagination: API returns paginated games based on pageNumber/pageSize
-// No client-side filtering needed - just return what server gives us
 export const selectGamesWithPagination = createSelector(
-  [selectGames, selectTotalCount, selectPageSize, selectPageNumber],
-  (games, totalCount, pageSize, pageNumber) => {
-    // Server already filtered by category and paginated
-    // Just return the games as-is
+  [selectGames, selectTotalCount, selectPageSize, selectPageNumber, selectSearchQuery],
+  (games, totalCount, pageSize, pageNumber, searchQuery) => {
+    // Filter games by search query if provided (client-side filtering)
+    // This ensures search works for all categories, even if the API doesn't support search parameter
+    let filteredGames = games;
+    if (searchQuery && searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      filteredGames = games.filter((game) => {
+        const gameName = (game.name || '').toLowerCase();
+        return gameName.includes(query);
+      });
+    }
+    
+    // Calculate pagination for filtered results
+    const filteredTotalCount = searchQuery && searchQuery.trim() 
+      ? filteredGames.length 
+      : totalCount;
+    
+    // Apply pagination to filtered games
+    const startIndex = (pageNumber - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedGames = filteredGames.slice(startIndex, endIndex);
+    
     return {
-      games, // Already filtered and paginated by server
-      totalCount, // Use totalCount from API
+      games: paginatedGames,
+      totalCount: filteredTotalCount,
       pageSize,
       pageNumber,
-      hasMore: games.length < totalCount && totalCount > 0,
-      totalPages: Math.ceil(totalCount / pageSize) || 1,
+      hasMore: endIndex < filteredTotalCount,
+      totalPages: Math.ceil(filteredTotalCount / pageSize) || 1,
     };
   }
 );

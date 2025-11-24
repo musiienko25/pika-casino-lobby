@@ -355,15 +355,24 @@ export default function gamesReducer(
       const typedAction = action as FetchGamesByCategoryFulfilledAction;
       const newGames = typedAction.payload.games || [];
 
-      // For client-side filtering: replace all games with new fetch
-      // This allows us to filter by category.name on the client
+      // For server-side pagination: API returns the correct page for the requested pageNumber
+      // For client-side pagination: we fetch all games (pageNumber=1 in fetch), but user's pageNumber is in state
+      // 
+      // We determine which pagination mode based on game count:
+      // - If we have many games (> pageSize), it's likely client-side pagination (fetched 200 games)
+      // - Otherwise, it's server-side pagination (API returned one page)
+      const requestedPageSize = typedAction.payload.requestedPageSize || state.pageSize;
+      const isClientSidePagination = newGames.length > requestedPageSize;
+      
       return {
         ...state,
         loading: false,
         items: [...newGames], // Store all games for client-side filtering
         totalCount: typedAction.payload.totalCount || newGames.length,
-        pageNumber: 1, // Reset to page 1 after new fetch
-        pageSize: typedAction.payload.requestedPageSize || state.pageSize,
+        // For server-side pagination: keep user's pageNumber from state (they selected the page)
+        // For client-side pagination: also keep user's pageNumber from state (selector will paginate)
+        pageNumber: state.pageNumber,
+        pageSize: requestedPageSize,
       };
     }
     

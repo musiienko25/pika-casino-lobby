@@ -71,8 +71,26 @@ function GamesList() {
       return;
     }
     
+    // Check if endpoint supports search and pagination
+    const supportsSearch = selectedCategory.getPage.includes('/en/games/tiles') || 
+                           selectedCategory.getPage === '/casino' || 
+                           selectedCategory.getPage === '/pages/en/casino';
+    
+    // Check if endpoint supports pagination
+    // /en/games/tiles supports pagination, but /pages/en/casino/* endpoints don't
+    const supportsPagination = supportsSearch; // Same endpoints support both
+    
+    // Use client-side pagination if:
+    // 1. Search is active and endpoint doesn't support search, OR
+    // 2. Endpoint doesn't support pagination (e.g., /pages/en/casino/most-popular)
+    const hasSearch = searchQuery && searchQuery.trim().length > 0;
+    const useClientSidePagination = (hasSearch && !supportsSearch) || !supportsPagination;
+    
     // Create a unique key for this fetch request
-    const fetchKey = `${selectedCategory.getPage}-${searchQuery || ''}-${pageNumber}`;
+    // For client-side pagination, don't include pageNumber in the key
+    const fetchKey = useClientSidePagination
+      ? `${selectedCategory.getPage}-${searchQuery || ''}`
+      : `${selectedCategory.getPage}-${searchQuery || ''}-${pageNumber}`;
     
     // Only fetch if this is a new request
     if (lastFetchRef.current !== fetchKey) {
@@ -80,10 +98,11 @@ function GamesList() {
       
       // Fetch games for the selected category using its getPage URL
       // API will filter games by category on the server side
+      // For client-side pagination, fetch with pageNumber=1 (we'll paginate client-side)
       dispatch(
         fetchGamesByCategory(selectedCategory.getPage, {
           search: searchQuery || undefined,
-          pageNumber,
+          pageNumber: useClientSidePagination ? 1 : pageNumber,
           pageSize: INITIAL_PAGE_SIZE,
         })
       );

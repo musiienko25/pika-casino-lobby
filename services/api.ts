@@ -223,13 +223,23 @@ export async function fetchCategoryGames(
       searchParams.append('search', params.search);
     }
     
-    if (params.pageNumber !== undefined) {
-      searchParams.append('pageNumber', params.pageNumber.toString());
-    }
+    // Check if endpoint supports pagination
+    // /en/games/tiles supports pagination, but /pages/en/casino/* endpoints don't
+    const supportsPagination = categoryPath.includes('/en/games/tiles') || 
+                               categoryPath === '/casino' || 
+                               categoryPath === '/pages/en/casino';
     
-    if (params.pageSize !== undefined) {
-      searchParams.append('pageSize', params.pageSize.toString());
+    // Only add pagination parameters if endpoint supports them
+    if (supportsPagination) {
+      if (params.pageNumber !== undefined) {
+        searchParams.append('pageNumber', params.pageNumber.toString());
+      }
+      
+      if (params.pageSize !== undefined) {
+        searchParams.append('pageSize', params.pageSize.toString());
+      }
     }
+    // For /pages/en/casino/* endpoints, don't pass pagination - they return all games
 
     const queryString = searchParams.toString();
     const apiUrl = `/api/games?${queryString}`;

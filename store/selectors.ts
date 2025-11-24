@@ -35,13 +35,16 @@ export const selectTotalCount = (state: RootState) => state.games.totalCount;
 // Server-side filtering: API filters by category via getPage URL
 // Client-side filtering: Filter by search query when API doesn't support it for certain categories
 // Server-side pagination: API returns paginated games based on pageNumber/pageSize
+// Client-side pagination: Only when search is active and we have many games (likely client-side fetch)
 export const selectGamesWithPagination = createSelector(
   [selectGames, selectTotalCount, selectPageSize, selectPageNumber, selectSearchQuery],
   (games, totalCount, pageSize, pageNumber, searchQuery) => {
+    const hasSearch = searchQuery && searchQuery.trim().length > 0;
+    
     // Filter games by search query if provided (client-side filtering)
     // This ensures search works for all categories, even if the API doesn't support search parameter
     let filteredGames = games;
-    if (searchQuery && searchQuery.trim()) {
+    if (hasSearch) {
       const query = searchQuery.trim().toLowerCase();
       filteredGames = games.filter((game) => {
         const gameName = (game.name || '').toLowerCase();
@@ -49,22 +52,37 @@ export const selectGamesWithPagination = createSelector(
       });
     }
     
-    // Calculate pagination for filtered results
-    const filteredTotalCount = searchQuery && searchQuery.trim() 
+    // Calculate total count for filtered results
+    const filteredTotalCount = hasSearch 
       ? filteredGames.length 
       : totalCount;
     
-    // Apply pagination to filtered games
-    const startIndex = (pageNumber - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    const paginatedGames = filteredGames.slice(startIndex, endIndex);
+    // Determine if we should use client-side pagination:
+    // - If we have many games (> pageSize): use client-side pagination
+    //   This happens when:
+    //   1. Endpoint doesn't support pagination (e.g., /pages/en/casino/most-popular) - returns all games
+    //   2. Search is active and endpoint doesn't support search - we fetch 200 games
+    // - If we have few games (<= pageSize): API already paginated, use as-is
+    //   This happens when endpoint supports pagination and returned one page
+    const shouldUseClientPagination = filteredGames.length > pageSize;
+    
+    let paginatedGames = filteredGames;
+    if (shouldUseClientPagination) {
+      // Apply client-side pagination to filtered games
+      const startIndex = (pageNumber - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      paginatedGames = filteredGames.slice(startIndex, endIndex);
+    }
+    // If few games: API already returned the correct page, use as-is
     
     return {
       games: paginatedGames,
       totalCount: filteredTotalCount,
       pageSize,
       pageNumber,
-      hasMore: endIndex < filteredTotalCount,
+      hasMore: shouldUseClientPagination 
+        ? (pageNumber * pageSize) < filteredTotalCount
+        : (pageNumber * pageSize) < totalCount,
       totalPages: Math.ceil(filteredTotalCount / pageSize) || 1,
     };
   }

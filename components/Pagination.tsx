@@ -7,16 +7,14 @@
 
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setPageNumber } from '@/store/slices/gamesSlice';
+import { selectGamesWithPagination } from '@/store/selectors';
 import styles from './Pagination.module.scss';
 
 export default function Pagination() {
   const dispatch = useAppDispatch();
-  const { pageNumber, pageSize, totalCount } = useAppSelector(
-    (state) => state.games
+  const { pageNumber, pageSize, totalCount, totalPages } = useAppSelector(
+    selectGamesWithPagination
   );
-
-  // Calculate total pages
-  const totalPages = Math.ceil(totalCount / pageSize);
 
   // Don't show pagination if there's only one page or no items
   if (totalPages <= 1 || totalCount === 0) {

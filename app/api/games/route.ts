@@ -79,8 +79,21 @@ export async function GET(request: NextRequest) {
     // Build query string
     const queryParams = new URLSearchParams();
     if (search) queryParams.append('search', search);
-    if (pageNumber) queryParams.append('pageNumber', pageNumber);
-    if (pageSize) queryParams.append('pageSize', pageSize);
+    
+    // Check if endpoint supports pagination
+    // /en/games/tiles supports pagination, but /pages/en/casino/* endpoints don't
+    const supportsPagination = !category || 
+                               category.includes('/en/games/tiles') || 
+                               category === '/casino' || 
+                               category === '/pages/en/casino';
+    
+    // Only add pagination parameters if endpoint supports them
+    if (supportsPagination) {
+      if (pageNumber) queryParams.append('pageNumber', pageNumber);
+      if (pageSize) queryParams.append('pageSize', pageSize);
+    }
+    // For /pages/en/casino/* endpoints, don't pass pagination - they return all games
+    
     // Add gameCollections parameter for /en/games/tiles endpoint
     if (gameCollections) {
       queryParams.append('gameCollections', gameCollections);

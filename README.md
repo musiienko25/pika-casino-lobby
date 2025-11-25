@@ -158,13 +158,6 @@ npm run test:coverage
 - Consistent code formatting
 - Error handling and loading states
 
-## Browser Support
-
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
-
 ## License
 
 This project is created as a technical assessment.
